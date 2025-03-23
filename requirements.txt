@@ -5,6 +5,7 @@ numpy
 matplotlib
 plotly
 bcrypt
+sklearn
 CoolProp
 fluprodia
 oemof.solph
