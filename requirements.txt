@@ -6,5 +6,6 @@ matplotlib
 plotly
 bcrypt
 CoolProp
+fluprodia
 oemof.solph
 oemof.thermal @ git+https://github.com/oemof/oemof-thermal.git@e4cc4261e1594bdfbc2b670dde62e756631267ce
