@@ -4,8 +4,8 @@ pandas
 numpy
 matplotlib
 plotly
+scikit-lear
 bcrypt
-sklearn
 CoolProp
 fluprodia
 oemof.solph
