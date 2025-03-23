@@ -211,14 +211,14 @@ is_dark = darkdetect.isDark()
 
 # %% MARK: Sidebar
 
-with st.sidebar:
-    st.markdown("### Debug Settings")
-    debug_mode = st.radio(
-        "Debug Output Mode",
-        options=["None", "Streamlit", "Console"],
-        index=0,
-        key="debug_mode",
-    )
+# with st.sidebar:
+#     st.markdown("### Debug Settings")
+#     debug_mode = st.radio(
+#         "Debug Output Mode",
+#         options=["None", "Streamlit", "Console"],
+#         index=0,
+#         key="debug_mode",
+#     )
 
 
 with st.sidebar: # Logo Here RG
@@ -1232,8 +1232,8 @@ if mode == 'Configuration':
                         st.subheader('Waterfall Diagram')
                         diagram_placeholder_waterfall = st.empty()
 
-                        if run_sim:
-                            debug_refrigerant_state(mode=debug_mode)
+                        # if run_sim:
+                        #     debug_refrigerant_state(mode=debug_mode)
 
                         diagram_waterfall = ss.hp.generate_waterfall_diagram()
 
