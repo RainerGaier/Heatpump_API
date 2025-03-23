@@ -839,9 +839,9 @@ if mode == 'Configuration':
             if hp_model['nr_refrigs'] == 1:
                 st.dataframe(df_refrig, use_container_width=True)
             elif hp_model['nr_refrigs'] == 2:
-                st.markdown('#### Hochtemperaturkreis')
+                st.markdown("#### High temperature circuit")
                 st.dataframe(df_refrig2, use_container_width=True)
-                st.markdown('#### Niedertemperaturkreis')
+                st.markdown("#### Low temperature circuit")
                 st.dataframe(df_refrig1, use_container_width=True)
 
             st.write("""
