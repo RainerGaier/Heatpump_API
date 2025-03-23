@@ -3,6 +3,7 @@ import os
 
 import darkdetect
 import matplotlib.pyplot as plt
+import matplotlib.figure  
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -12,27 +13,102 @@ from simulation import run_design, run_partload
 from streamlit import session_state as ss
 
 
-# def generate_waterfall_diagram():
-#     categories = ["A", "B", "C"]
-#     values = {
-#         "Segment 1": np.array([10, 20, 15]),
-#         "Segment 2": np.array([5, 10, 12]),
-#         "Segment 3": np.array([8, 12, 7]),
-#     }
+def debug_refrigerant_state(mode="None"):
+    """
+    Debug refrigerant setup and TESPy result data integrity.
 
-#     height = 0.5  # Bar thickness
-#     fig, ax = plt.subplots()
-#     left = np.zeros(len(categories))  # Initialize left positions for stacking
+    Parameters
+    ----------
+    mode : str
+        One of 'None', 'Streamlit', or 'Console'. Controls how and if debug output is shown.
+    """
+    if mode == "None":
+        return  # Skip all debug output
 
-#     for segment, value in values.items():
-#         ax.barh(categories, value, height, left=left, label=segment)
-#         left += value  # Stack the bars horizontally
+    import pprint
 
-#     ax.set_title("Stacked Horizontal Waterfall Diagram")
-#     ax.legend(loc="upper right")
+    def log(msg, level="info"):
+        if mode == "Streamlit":
+            if level == "info":
+                st.info(msg)
+            elif level == "success":
+                st.success(msg)
+            elif level == "warning":
+                st.warning(msg)
+            elif level == "error":
+                st.error(msg)
+        else:
+            print(f"[{level.upper()}] {msg}")
 
-#     return fig  # ✅ Always return the figure explicitly
+    def log_dataframe(df, caption=None):
+        if mode == "Streamlit":
+            st.dataframe(df, use_container_width=True)
+        else:
+            print(f"\n--- {caption or 'Data Preview'} ---")
+            print(df.head())
 
+    log("🔍 DEBUG: REFRIGERANT AND SIMULATION STATE")
+
+    # Print full parameter setup
+    log("▶️ Session Parameters:", level="info")
+    if hasattr(ss, "hp") and hasattr(ss.hp, "params"):
+        if mode == "Console":
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(ss.hp.params)
+        else:
+            st.json(ss.hp.params)
+    else:
+        log("❌ ss.hp or ss.hp.params not found.", level="error")
+        return
+
+    setup = ss.hp.params.get("setup", {})
+    fluids = ss.hp.params.get("fluids", {})
+    log(f"▶️ Refrigerant Setup: {setup}")
+    log(f"▶️ Fluid definitions: {fluids}")
+
+    # Check network results
+    if hasattr(ss.hp, "nw") and hasattr(ss.hp.nw, "results"):
+        conn = ss.hp.nw.results.get("Connection", pd.DataFrame())
+        if conn.empty:
+            log("⚠️ Network Connection DataFrame is empty", level="warning")
+        else:
+            log("▶️ Network Connection Data (Preview):")
+            log_dataframe(conn, caption="Connection Data Preview")
+
+            log(f"Available columns: {list(conn.columns)}")
+
+            for wf_key in fluids.values():
+                if wf_key in conn.columns:
+                    wfmask = conn[wf_key] == 1.0
+                    log(f"✅ Fluid '{wf_key}' — Matching rows: {wfmask.sum()}")
+                    if wfmask.sum() > 0:
+                        log(
+                            f"Sample 'h': {conn.loc[wfmask, 'h'].dropna().head().tolist()}"
+                        )
+                        log(
+                            f"Sample 'p': {conn.loc[wfmask, 'p'].dropna().head().tolist()}"
+                        )
+                        log(
+                            f"Sample 's': {conn.loc[wfmask, 's'].dropna().head().tolist()}"
+                        )
+                else:
+                    log(
+                        f"⚠️ Fluid column '{wf_key}' not found in results.",
+                        level="warning",
+                    )
+    else:
+        log("❌ No network results found in `ss.hp.nw.results`.", level="error")
+        return
+
+    try:
+        h_vals = conn["h"].dropna()
+        p_vals = conn["p"].dropna()
+        if h_vals.empty or p_vals.empty:
+            log("⚠️ Enthalpy or Pressure data is empty.", level="warning")
+        else:
+            log("✅ Enthalpy and Pressure data present.", level="success")
+    except Exception as e:
+        log(f"❌ Error checking values: {e}", level="error")
 
 def switch2design():
     """Switch to design simulation tab."""
@@ -134,6 +210,17 @@ st.set_page_config(
 is_dark = darkdetect.isDark()
 
 # %% MARK: Sidebar
+
+# with st.sidebar:
+#     st.markdown("### Debug Settings")
+#     debug_mode = st.radio(
+#         "Debug Output Mode",
+#         options=["None", "Streamlit", "Console"],
+#         index=0,
+#         key="debug_mode",
+#     )
+
+
 with st.sidebar: # Logo Here RG
     if is_dark:
         logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2_dark.svg')
@@ -1140,35 +1227,36 @@ if mode == 'Configuration':
                         diagram_placeholder_sankey.plotly_chart(
                             diagram_sankey, use_container_width=True
                             )
-                    # with col7:
-                    #     st.subheader("Waterfall Diagram")
-                    #     diagram_placeholder_waterfall = st.empty()
-
-                    #     fig = ss.hp.generate_waterfall_diagram()  # ✅ Ensure it returns a figure
-
-                    #     diagram_placeholder_waterfall.pyplot(fig, use_container_width=True, clear_figure=False)  # ✅ Avoid clearing if needed
-
-                    # plt.close(fig)  # ✅ Close the figure to prevent memory leaks
-                    # RG >>>
-                    # with col7:
-                    #     st.subheader("Waterfall Diagram")
-                    #     diagram_placeholder_waterfall = st.empty()
-
-                    #     # Ensure that `generate_waterfall_diagram()` returns a valid figure
-                    #     fig = ss.hp.generate_waterfall_diagram()  # Assuming this returns a Matplotlib figure
-
-                    #     # Pass the figure explicitly to st.pyplot()
-                    #     diagram_placeholder_waterfall.pyplot(fig, use_container_width=True)
-                    # RG <<<
-                    # Original >>>
+                    # RRG >>>
                     with col7:
                         st.subheader('Waterfall Diagram')
                         diagram_placeholder_waterfall = st.empty()
 
+                        # if run_sim:
+                        #     debug_refrigerant_state(mode=debug_mode)
+
                         diagram_waterfall = ss.hp.generate_waterfall_diagram()
-                        diagram_placeholder_waterfall.pyplot(
-                                            diagram_waterfall, use_container_width=True
-                                            )
+
+                        if isinstance(diagram_waterfall, matplotlib.figure.Figure):
+                            diagram_placeholder_waterfall.pyplot(diagram_waterfall, use_container_width=True)
+                        elif diagram_waterfall is None:
+                            st.warning("⚠️ Waterfall diagram not generated — figure is `None`.")
+                        else:
+                            st.warning("⚠️ Waterfall diagram could not be rendered (invalid figure type).")
+
+                    # RG <<<
+                    # Original >>>
+                    # with col7:
+                    #     st.subheader('Waterfall Diagram')
+                    #     diagram_placeholder_waterfall = st.empty()
+                    #     if run_sim:
+                    #         # Debug Just before plotting state diagrams, if requested
+                    #         debug_refrigerant_state(mode=debug_mode)
+
+                    #     diagram_waterfall = ss.hp.generate_waterfall_diagram()
+                    #     diagram_placeholder_waterfall.pyplot(
+                    #                         diagram_waterfall, use_container_width=True
+                    #                         )
                     # Original <<<
 
                     st.write(
@@ -1298,3 +1386,7 @@ if mode == 'Partial load':
                         pl_epsilon_placeholder.pyplot(figs[T_select_epsilon])
 
                 st.button("Designing a new heat pump", on_click=reset2design)
+
+# if __name__ == "__main__":
+#     ss.hp = run_design(hp_model_name, params)
+#     debug_refrigerant_state(mode="console")

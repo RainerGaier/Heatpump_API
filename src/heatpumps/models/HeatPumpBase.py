@@ -578,6 +578,12 @@ class HeatPumpBase:
 
     def generate_waterfall_diagram(self, figsize=(16, 10), legend=True,
                                    return_fig_ax=False, show_epsilon=True):
+# RG >>>        
+        # import streamlit as st  # if not already imported
+
+        # st.write("🔧 [Debug] Entered `generate_waterfall_diagram()`")
+# RG <<<        
+
         """Generates waterfall diagram of exergy analysis"""
         comps = ['Fuel Exergy']
         E_F = self.ean.network_data.E_F
@@ -603,6 +609,12 @@ class HeatPumpBase:
 
         fig, ax = plt.subplots(figsize=figsize)
 
+# RG >>>
+        # if fig is None:
+        #     st.error("🚨 generate_waterfall_diagram() returned None")
+        # else:
+        #     st.success("✅ generate_waterfall_diagram() returned a valid figure")
+# RG <<<
         ax.barh(
             np.arange(len(comps)), E_P,
             align='center', color=colors_E_P
@@ -637,6 +649,8 @@ class HeatPumpBase:
 
         if return_fig_ax:
             return fig, ax
+        
+        return fig
 
     def calc_partload_char(self, **kwargs):
         """
