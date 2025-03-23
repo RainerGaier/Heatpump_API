@@ -1,4 +1,5 @@
 streamlit
+darkdetect
 pandas
 numpy
 matplotlib
