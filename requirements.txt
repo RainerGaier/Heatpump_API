@@ -1,13 +1,16 @@
-streamlit
-darkdetect
-pandas
-numpy
-matplotlib
-plotly
-scikit-learn
-bcrypt
-tespy
-CoolProp
-fluprodia
-oemof.solph
+streamlit==1.43.2
+pandas==2.2.3
+numpy==2.2.3
+matplotlib==3.10.1
+plotly==6.0.0
+CoolProp==6.7.0
+tespy==0.7.9
+fluprodia==3.5.1
+scikit-learn==1.6.1
+darkdetect==0.8.0
+
+# Oemof family (thermal from GitHub, rest from PyPI)
+oemof.network==0.5.0
+oemof.solph==0.5.6
+oemof.tools==0.4.3
 oemof.thermal @ git+https://github.com/oemof/oemof-thermal.git@e4cc4261e1594bdfbc2b670dde62e756631267ce
