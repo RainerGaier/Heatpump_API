@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # heatpumps
 
 Steady-state simulation of design and partload operation of a wide collection of heat pump topologies.
@@ -102,7 +101,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-=======
+
 # heatpumps_eng
 Heatpumps application by Jonas Freißmann - converted to English 
->>>>>>> 397b50af804f3eee812589f40772fe390ae8e3e4
