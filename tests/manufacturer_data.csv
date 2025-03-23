@@ -1,0 +1,4 @@
+Manufacturer,Model,Type,MassFlow_kg_s,U_evap_W_m2K,U_cond_W_m2K,U_trans_W_m2K,Efficiency,Cost_USD
+Bitzer,ECH209,Compressor,0.5,500,450,400,0.85,5000
+Danfoss,SH295,Compressor,0.8,600,500,420,0.88,6500
+Mitsubishi,PUEH50,Compressor,0.6,550,470,410,0.87,7000

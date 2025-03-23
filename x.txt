@@ -1,0 +1,9 @@
+C:\Users\gaierr\Energy_Projects\projects\heatpumps\heatpumps-main\docs
+C:\Users\gaierr\Energy_Projects\projects\heatpumps\heatpumps-main\src
+C:\Users\gaierr\Energy_Projects\projects\heatpumps\heatpumps-main\tests
+C:\Users\gaierr\Energy_Projects\projects\heatpumps\heatpumps-main\src\heatpumps
+C:\Users\gaierr\Energy_Projects\projects\heatpumps\heatpumps-main\src\heatpumps\models
+C:\Users\gaierr\Energy_Projects\projects\heatpumps\heatpumps-main\src\heatpumps\static
+C:\Users\gaierr\Energy_Projects\projects\heatpumps\heatpumps-main\src\heatpumps\models\input
+C:\Users\gaierr\Energy_Projects\projects\heatpumps\heatpumps-main\src\heatpumps\static\img
+C:\Users\gaierr\Energy_Projects\projects\heatpumps\heatpumps-main\src\heatpumps\static\img\topologies

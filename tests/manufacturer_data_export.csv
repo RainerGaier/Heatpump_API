@@ -1,0 +1,7 @@
+id,manufacturer,model,mass_flow_kg_s,U_evap_W_m2K,U_cond_W_m2K,U_trans_W_m2K,efficiency,cost_usd
+1,Bitzer,ECH209,0.5,500.0,450.0,400.0,0.85,5000.0
+2,Danfoss,SH295,0.8,600.0,500.0,420.0,0.88,6500.0
+3,Mitsubishi,PUEH50,0.6,550.0,470.0,410.0,0.87,7000.0
+4,Bitzer,ECH209,0.5,500.0,450.0,400.0,0.85,5000.0
+5,Danfoss,SH295,0.8,600.0,500.0,420.0,0.88,6500.0
+6,Mitsubishi,PUEH50,0.6,550.0,470.0,410.0,0.87,7000.0
