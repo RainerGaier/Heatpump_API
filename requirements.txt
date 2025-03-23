@@ -3,6 +3,7 @@ darkdetect
 pandas
 numpy
 matplotlib
+plotly
 bcrypt
 CoolProp
 oemof.solph
