@@ -1081,9 +1081,7 @@ class HeatPumpBase:
                     + f'{self.params["setup"]["refrig1"]}_and_'
                     + f'{self.params["setup"]["refrig2"]}.pdf'
                     )
-            filepath = os.path.abspath(os.path.join(
-                os.path.dirname(__file__), 'output', filename
-                ))
+            filepath = os.path.join(self.output_base, filename)
             plt.tight_layout()
             plt.savefig(filepath, dpi=300)
 
@@ -1101,23 +1099,23 @@ class HeatPumpBase:
             f"{self.params['setup']['type']}_"
             + f"{self.params['setup']['refrig']}"
             )
-        self.design_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), 'stable', f'{self.subdirname}_design'
-            ))
+
+        # Always use user data directory for write operations
+        # This avoids permission issues and follows best practices
+        user_data_dir = os.path.join(os.path.expanduser('~'), '.heatpumps')
+
+        self.stable_base = os.path.join(user_data_dir, 'stable')
+        self.design_path = os.path.join(self.stable_base, f'{self.subdirname}_design')
+        self.output_base = os.path.join(user_data_dir, 'output')
+
         self.validate_dir()
 
     def validate_dir(self):
-        """Check for a 'stable' directory and create it if necessary."""
-        stablepath = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), 'stable'
-            ))
-        if not os.path.exists(stablepath):
-            os.mkdir(stablepath)
-        outputpath = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), 'output'
-            ))
-        if not os.path.exists(outputpath):
-            os.mkdir(outputpath)
+        """Check for necessary directories and create them if needed."""
+        # Create user data directories if they don't exist
+        for path in [self.stable_base, self.output_base]:
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
 
     def check_consistency(self):
         """Perform all necessary checks to protect consistency of parameters."""
@@ -1249,10 +1247,9 @@ class HeatPumpBase:
                             and (pl == self.pl_range[-1])
                     )
                     if no_init_path:
-                        self.init_path = os.path.abspath(os.path.join(
-                            os.path.dirname(__file__), 'stable',
-                            f'{self.subdirname}_init'
-                        ))
+                        self.init_path = os.path.join(
+                            self.stable_base, f'{self.subdirname}_init'
+                        )
 
                     self.comps['cons'].set_attr(Q=None)
                     self.conns['A0'].set_attr(m=pl * self.m_design)
@@ -1268,11 +1265,9 @@ class HeatPumpBase:
 
                     # Logging simulation
                     if log_simulations:
-                        logdirpath = os.path.abspath(os.path.join(
-                            os.path.dirname(__file__), 'output', 'logging'
-                        ))
+                        logdirpath = os.path.join(self.output_base, 'logging')
                         if not os.path.exists(logdirpath):
-                            os.mkdir(logdirpath)
+                            os.makedirs(logdirpath, exist_ok=True)
                         logpath = os.path.join(
                             logdirpath, f'{self.subdirname}_offdesign_log.csv'
                         )
@@ -1296,10 +1291,9 @@ class HeatPumpBase:
                                 file.write(log_entry)
 
                     if pl == self.pl_range[-1] and self.nw.residual[-1] < 1e-3:
-                        self.nw.save(os.path.abspath(os.path.join(
-                            os.path.dirname(__file__), 'stable',
-                            f'{self.subdirname}_init'
-                        )))
+                        self.nw.save(os.path.join(
+                            self.stable_base, f'{self.subdirname}_init'
+                        ))
 
                     inranges = (
                             (T_hs_ff in self.T_hs_ff_range)
@@ -1339,10 +1333,9 @@ class HeatPumpBase:
                             )
 
         if self.params['offdesign']['save_results']:
-            resultpath = os.path.abspath(os.path.join(
-                os.path.dirname(__file__), 'output',
-                f'{self.subdirname}_partload.csv'
-            ))
+            resultpath = os.path.join(
+                self.output_base, f'{self.subdirname}_partload.csv'
+            )
             results_offdesign.to_csv(resultpath, sep=';')
 
         self.df_to_array(results_offdesign)

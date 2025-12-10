@@ -3,14 +3,21 @@ import os
 
 import darkdetect
 import matplotlib.pyplot as plt
-import matplotlib.figure  
+import matplotlib.figure
 import numpy as np
 import pandas as pd
 import streamlit as st
-import variables as var
 from CoolProp.CoolProp import PropsSI as PSI
-from simulation import run_design, run_partload
 from streamlit import session_state as ss
+
+# Use absolute imports when installed as package
+try:
+    import heatpumps.variables as var
+    from heatpumps.simulation import run_design, run_partload
+except ImportError:
+    # Fallback for direct script execution
+    import variables as var
+    from simulation import run_design, run_partload
 
 
 def debug_refrigerant_state(mode="None"):
@@ -222,10 +229,12 @@ is_dark = darkdetect.isDark()
 
 
 with st.sidebar: # Logo Here RG
+    # Note: _dark.svg files have darker lines for light backgrounds
+    # Regular .svg files have lighter lines for dark backgrounds
     if is_dark:
-        logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2_dark.svg')
-    else:
         logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2.svg')
+    else:
+        logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2_dark.svg')
     st.image(logo, use_container_width=True)
 
     mode = st.selectbox(
@@ -814,7 +823,14 @@ if mode == 'Configuration':
         with col_left:
             st.subheader('Topology')
 
+            # Note: _dark.svg files have darker lines for light backgrounds
+            # Regular .svg files have lighter lines for dark backgrounds
             if is_dark:
+                top_file = os.path.join(
+                    src_path, 'img', 'topologies', f'hp_{hp_model_name_topology}.svg'
+                    )
+                st.image(top_file)
+            else:
                 try:
                     top_file = os.path.join(
                         src_path, 'img', 'topologies',
@@ -826,12 +842,6 @@ if mode == 'Configuration':
                         src_path, 'img', 'topologies', f'hp_{hp_model_name_topology}.svg'
                         )
                     st.image(top_file)
-
-            else:
-                top_file = os.path.join(
-                    src_path, 'img', 'topologies', f'hp_{hp_model_name_topology}.svg'
-                    )
-                st.image(top_file)
 
         with col_right:
             st.subheader('Refrigerant')
@@ -949,11 +959,13 @@ if mode == 'Configuration':
                     with col_left:
                         st.subheader('Topology')
 
+                        # Note: _dark.svg files have darker lines for light backgrounds
+                        # Regular .svg files have lighter lines for dark backgrounds
                         top_file = os.path.join(
                             src_path, 'img', 'topologies',
                             f'hp_{hp_model_name_topology}_label.svg'
                             )
-                        if is_dark:
+                        if not is_dark:
                             top_file_dark = os.path.join(
                                 src_path, 'img', 'topologies',
                                 f'hp_{hp_model_name_topology}_label_dark.svg'

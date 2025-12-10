@@ -1,0 +1,98 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heatpumps"
+version = "0.1.0"
+description = "Steady-state simulation of design and partload operation of a wide collection of heat pump topologies"
+readme = "README.md"
+authors = [
+    {name = "Jonas Freißmann"},
+    {name = "Malte Fritz"}
+]
+license = {text = "MIT"}
+requires-python = ">=3.11"
+keywords = ["heat pump", "thermodynamics", "simulation", "TESPy", "refrigeration"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+dependencies = [
+    "streamlit>=1.43.2",
+    "pandas>=2.2.3",
+    "numpy>=2.2.3",
+    "matplotlib>=3.10.1",
+    "plotly>=6.0.0",
+    "CoolProp>=6.7.0",
+    "tespy>=0.7.9",
+    "fluprodia>=3.5.1",
+    "scikit-learn>=1.6.1",
+    "darkdetect>=0.8.0",
+    "oemof.network>=0.5.0",
+    "oemof.solph>=0.5.6",
+    "oemof.tools>=0.4.3",
+    "oemof.thermal @ git+https://github.com/oemof/oemof-thermal.git@e4cc4261e1594bdfbc2b670dde62e756631267ce",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/jfreissmann/heatpumps"
+Repository = "https://github.com/jfreissmann/heatpumps"
+Documentation = "https://heatpumps.readthedocs.io"
+
+[project.scripts]
+heatpumps-dashboard = "heatpumps.run_dashboard:main"
+
+[tool.setuptools]
+packages = ["heatpumps", "heatpumps.models"]
+
+[tool.setuptools.package-dir]
+heatpumps = "src/heatpumps"
+
+[tool.setuptools.package-data]
+heatpumps = [
+    "models/input/*.json",
+    "models/input/diagrams/*.json",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+]

@@ -1,0 +1,17 @@
+# Include documentation and license files
+include README.md
+include LICENSE
+include requirements.txt
+include requirements-dev.txt
+
+# Include package data
+recursive-include src/heatpumps/models/input *.json
+recursive-include src/heatpumps/models/input/diagrams *.json
+
+# Exclude unnecessary files
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+recursive-exclude tests *
+recursive-exclude docs *
+exclude .gitignore

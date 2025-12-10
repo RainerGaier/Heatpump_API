@@ -1,4 +1,7 @@
-import variables as var
+try:
+    import heatpumps.variables as var
+except ImportError:
+    import variables as var
 
 
 def run_design(hp_model_name, params):
