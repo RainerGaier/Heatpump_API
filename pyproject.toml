@@ -40,6 +40,11 @@ dependencies = [
     "oemof.solph>=0.5.6",
     "oemof.tools>=0.4.3",
     "oemof.thermal @ git+https://github.com/oemof/oemof-thermal.git@e4cc4261e1594bdfbc2b670dde62e756631267ce",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "httpx>=0.28.0",
 ]
 
 [project.optional-dependencies]
@@ -57,9 +62,10 @@ Documentation = "https://heatpumps.readthedocs.io"
 
 [project.scripts]
 heatpumps-dashboard = "heatpumps.run_dashboard:main"
+heatpumps-api = "heatpumps.api.main:run"
 
 [tool.setuptools]
-packages = ["heatpumps", "heatpumps.models"]
+packages = ["heatpumps", "heatpumps.models", "heatpumps.api", "heatpumps.api.routes"]
 
 [tool.setuptools.package-dir]
 heatpumps = "src/heatpumps"

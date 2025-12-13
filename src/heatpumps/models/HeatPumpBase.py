@@ -1131,16 +1131,16 @@ class HeatPumpBase:
 
         # Parametrization
         kA_char1_default = ldc(
-            'heat exchanger', 'kA_char1', 'DEFAULT', CharLine
+            'HeatExchanger', 'kA_char1', 'DEFAULT', CharLine
         )
         kA_char1_cond = ldc(
-            'heat exchanger', 'kA_char1', 'CONDENSING FLUID', CharLine
+            'HeatExchanger', 'kA_char1', 'CONDENSING FLUID', CharLine
         )
         kA_char2_evap = ldc(
-            'heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine
+            'HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine
         )
         kA_char2_default = ldc(
-            'heat exchanger', 'kA_char2', 'DEFAULT', CharLine
+            'HeatExchanger', 'kA_char2', 'DEFAULT', CharLine
         )
 
         tespy_components = ['Condenser', 'HeatExchanger', 'Compressor', 'Pump', 'SimpleHeatExchanger']

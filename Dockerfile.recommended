@@ -1,0 +1,29 @@
+# Use Python 3.11 slim image
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies needed for TESPy and scientific computing
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    gfortran \
+    libopenblas-dev \
+    liblapack-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy project files
+COPY . .
+
+# Install Python dependencies
+# Note: Cloud Run will use the PORT environment variable
+RUN pip install --no-cache-dir -e .
+
+# Expose port (Cloud Run will override this with $PORT)
+EXPOSE 8080
+
+# Run the application
+# Cloud Run provides PORT environment variable
+CMD exec uvicorn heatpumps.api.main:app --host 0.0.0.0 --port ${PORT:-8080}

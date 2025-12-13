@@ -1,0 +1,51 @@
+{
+  "model_name": "ihx",
+  "params": {
+    "setup": {
+      "name": "Data Centre Cooling - IHX",
+      "type": "HeatPumpIHX",
+      "refrig": "R134a"
+    },
+    "fluids": {
+      "wf": "R134a",
+      "si": "water",
+      "so": "water"
+    },
+    "cons": {
+      "pr": 0.98,
+      "Q": -5000000.0
+    },
+    "B1": {
+      "T": 18,
+      "p": 1.013
+    },
+    "B2": {
+      "T": 15
+    },
+    "C1": {
+      "T": 30
+    },
+    "C3": {
+      "T": 70,
+      "p": 10
+    },
+    "evap": {
+      "pr1": 0.98,
+      "pr2": 0.98,
+      "ttd_l": 2
+    },
+    "cond": {
+      "pr1": 0.98,
+      "pr2": 0.98,
+      "ttd_u": 2
+    },
+    "ihx": {
+      "pr1": 0.98,
+      "pr2": 0.98,
+      "dT_sh": 5
+    },
+    "comp": {
+      "eta_s": 0.75
+    }
+  }
+}
