@@ -92,6 +92,24 @@ class Settings(BaseSettings):
         description="Cache TTL in seconds",
     )
 
+    # Google Cloud Storage Configuration
+    GCP_PROJECT_ID: str = Field(
+        default="",
+        description="GCP project ID",
+    )
+    GCS_BUCKET_NAME: str = Field(
+        default="heatpump-reports",
+        description="Cloud Storage bucket name for reports",
+    )
+    GCS_LOCATION: str = Field(
+        default="europe-west2",
+        description="Cloud Storage bucket location",
+    )
+    REPORTS_EXPIRY_DAYS: int = Field(
+        default=30,
+        description="Number of days before reports expire",
+    )
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

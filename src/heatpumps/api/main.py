@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from heatpumps.api.routes import simulate, models, tasks
+from heatpumps.api.routes import simulate, models, tasks, reports
 from heatpumps.api.config import settings
 
 # Initialize FastAPI app
@@ -33,6 +33,7 @@ app.add_middleware(
 app.include_router(simulate.router, prefix="/api/v1/simulate", tags=["Simulation"])
 app.include_router(models.router, prefix="/api/v1/models", tags=["Models"])
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["Tasks"])
+app.include_router(reports.router, prefix="/api/v1/reports", tags=["Reports"])
 
 
 @app.get("/")

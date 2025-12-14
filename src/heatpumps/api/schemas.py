@@ -404,3 +404,75 @@ class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
     status_code: int
+
+
+# Report Schemas
+class ReportMetadata(BaseModel):
+    """Metadata for a simulation report."""
+
+    report_id: str = Field(..., description="Unique report identifier (UUID)")
+    created_at: str = Field(..., description="ISO timestamp of report creation")
+    model_name: str = Field(..., description="Name of the heat pump model")
+    topology: str = Field(..., description="Heat pump topology type")
+    refrigerant: str = Field(..., description="Refrigerant name")
+    api_version: Optional[str] = Field(None, description="API version used")
+
+
+class SaveReportRequest(BaseModel):
+    """Request to save a simulation report to Cloud Storage."""
+
+    simulation_data: Dict[str, Any] = Field(..., description="Complete simulation results data")
+    metadata: ReportMetadata = Field(..., description="Report metadata")
+
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "simulation_data": {
+                "configuration_results": {
+                    "cop": 4.23,
+                    "heat_output_w": 10500000.0,
+                    "power_input_w": 2482000.0
+                },
+                "state_variables": {},
+                "economic_evaluation": {},
+                "exergy_assessment": {}
+            },
+            "metadata": {
+                "report_id": "8f7a9b2c-4d3e-11ef-9a1b-0242ac120002",
+                "created_at": "2025-12-14T10:00:00Z",
+                "model_name": "Data Centre IHX",
+                "topology": "HeatPumpIHX",
+                "refrigerant": "R134a"
+            }
+        }
+    })
+
+
+class SaveReportResponse(BaseModel):
+    """Response after saving a report."""
+
+    report_id: str = Field(..., description="Unique report identifier")
+    storage_url: str = Field(..., description="GCS storage URL (gs://...)")
+    signed_url: str = Field(..., description="Signed URL for public access (expires in 7 days)")
+    expires_at: str = Field(..., description="ISO timestamp when signed URL expires")
+    message: str = Field(default="Report saved successfully")
+
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "report_id": "8f7a9b2c-4d3e-11ef-9a1b-0242ac120002",
+            "storage_url": "gs://heatpump-reports-lotsawatts/reports/2025-12/8f7a9b2c.json",
+            "signed_url": "https://storage.googleapis.com/heatpump-reports-lotsawatts/...",
+            "expires_at": "2025-12-21T10:00:00Z",
+            "message": "Report saved successfully"
+        }
+    })
+
+
+class ReportInfo(BaseModel):
+    """Information about a stored report."""
+
+    report_id: str
+    blob_path: str
+    size_bytes: int
+    created_at: Optional[str]
+    updated_at: Optional[str]
+    metadata: Dict[str, Any]
