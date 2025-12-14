@@ -292,6 +292,16 @@ with st.sidebar: # Logo Here RG
                         hp_model_name_topology = hp_model_name
                     break
 
+            # Clear old simulation results if model type changed
+            if 'previous_model' in ss and ss.previous_model != hp_model_name:
+                # Model changed - clear old results
+                if 'hp' in ss:
+                    del ss.hp
+                if 'partload_char' in ss:
+                    del ss.partload_char
+            # Store current model for next comparison
+            ss.previous_model = hp_model_name
+
             parampath = os.path.abspath(os.path.join(
                 os.path.dirname(__file__), 'models', 'input',
                 f'params_hp_{hp_model_name}.json'

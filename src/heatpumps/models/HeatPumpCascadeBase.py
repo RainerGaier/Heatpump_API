@@ -22,9 +22,15 @@ class HeatPumpCascadeBase(HeatPumpBase):
             + f"{self.params['setup']['refrig1']}_"
             + f"{self.params['setup']['refrig2']}"
             )
-        self.design_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), 'stable', f'{self.subdirname}_design'
-            ))
+
+        # Set base directories (same as HeatPumpBase)
+        user_data_dir = os.path.join(os.path.expanduser('~'), '.heatpumps')
+        self.stable_base = os.path.join(user_data_dir, 'stable')
+        self.output_base = os.path.join(user_data_dir, 'output')
+
+        # Set design path
+        self.design_path = os.path.join(self.stable_base, f'{self.subdirname}_design')
+
         self.validate_dir()
 
     def generate_state_diagram(self, refrig='', diagram_type='logph',
