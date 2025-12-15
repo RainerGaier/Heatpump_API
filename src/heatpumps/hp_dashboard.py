@@ -54,7 +54,7 @@ def debug_refrigerant_state(mode="None"):
 
     def log_dataframe(df, caption=None):
         if mode == "Streamlit":
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width='stretch')
         else:
             print(f"\n--- {caption or 'Data Preview'} ---")
             print(df.head())
@@ -240,7 +240,7 @@ with st.sidebar: # Logo Here RG
         logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2.svg')
     else:
         logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2_dark.svg')
-    st.image(logo, use_container_width=True)
+    st.image(logo, width='stretch')
 
     mode = st.selectbox(
         "Selection mode",
@@ -862,12 +862,12 @@ if mode == 'Configuration':
             st.subheader('Refrigerant')
 
             if hp_model['nr_refrigs'] == 1:
-                st.dataframe(df_refrig, use_container_width=True)
+                st.dataframe(df_refrig, width='stretch')
             elif hp_model['nr_refrigs'] == 2:
                 st.markdown("#### High temperature circuit")
-                st.dataframe(df_refrig2, use_container_width=True)
+                st.dataframe(df_refrig2, width='stretch')
                 st.markdown("#### Low temperature circuit")
-                st.dataframe(df_refrig1, use_container_width=True)
+                st.dataframe(df_refrig1, width='stretch')
 
             st.write("""
                 All fabric data and classifications from [Coolprop] (http://www.coolprop.org) or [Arpagaus et al. (2018)] (https://doi.org/10.1016/J.ENERGY.2018.03.166)
@@ -995,12 +995,12 @@ if mode == 'Configuration':
                     st.subheader('Refrigerant')
 
                     if hp_model['nr_refrigs'] == 1:
-                        st.dataframe(df_refrig, use_container_width=True)
+                        st.dataframe(df_refrig, width='stretch')
                     elif hp_model['nr_refrigs'] == 2:
                         st.markdown("#### High temperature circuit")
-                        st.dataframe(df_refrig2, use_container_width=True)
+                        st.dataframe(df_refrig2, width='stretch')
                         st.markdown("#### Low temperature circuit")
-                        st.dataframe(df_refrig1, use_container_width=True)
+                        st.dataframe(df_refrig1, width='stretch')
 
                     st.write("""
                              All fabric data and classifications from [Coolprop] (http://www.coolprop.org) or [Arpagaus et al. (2018)] (https://doi.org/10.1016/J.ENERGY.2018.03.166)
@@ -1168,7 +1168,7 @@ if mode == 'Configuration':
                         },
                     inplace=True)
                 st.dataframe(
-                    data=state_quantities, use_container_width=True
+                    data=state_quantities, width='stretch'
                     )
 
             with st.expander("E C O N O M I C &nbsp; E V A L U A T I O N"):
@@ -1189,7 +1189,7 @@ if mode == 'Configuration':
                     k: [round(v, 2)]
                     for k, v in ss.hp.cost.items()
                     })
-                st.dataframe(costdata, use_container_width=True, hide_index=True)
+                st.dataframe(costdata, width='stretch', hide_index=True)
 
                 st.write(""" Methodology for the calculation of the costs analogous to [Kosmadakis et al. (2020)] (https://doi.org/10.1016/j.enconman.2020.113488), based on [Bejan et al.(1995)] (https://www.wiley.com/en-us/thermal+Design+And+optimization-P-9780471584674).""")
 
@@ -1243,7 +1243,7 @@ if mode == 'Configuration':
                     },
                     inplace=True)
                 st.dataframe(
-                    data=exergy_component_result, use_container_width=True
+                    data=exergy_component_result, width='stretch'
                     )
 
                 col6, _, col7 = st.columns([0.495, 0.01, 0.495])
@@ -1253,7 +1253,7 @@ if mode == 'Configuration':
 
                     diagram_sankey = ss.hp.generate_sankey_diagram()
                     diagram_placeholder_sankey.plotly_chart(
-                        diagram_sankey, use_container_width=True
+                        diagram_sankey, width='stretch'
                         )
                 # RRG >>>
                 with col7:
@@ -1266,7 +1266,7 @@ if mode == 'Configuration':
                     diagram_waterfall = ss.hp.generate_waterfall_diagram()
 
                     if isinstance(diagram_waterfall, matplotlib.figure.Figure):
-                        diagram_placeholder_waterfall.pyplot(diagram_waterfall, use_container_width=True)
+                        diagram_placeholder_waterfall.pyplot(diagram_waterfall, width='stretch')
                     elif diagram_waterfall is None:
                         st.warning("⚠️ Waterfall diagram not generated — figure is `None`.")
                     else:
@@ -1298,7 +1298,7 @@ if mode == 'Configuration':
             col_report, col_partload = st.columns([1, 1])
 
             with col_report:
-                if st.button('📤 Save & Share Report', use_container_width=True):
+                if st.button('📤 Save & Share Report', width='stretch'):
                     try:
                         # Extract simulation data
                         with st.spinner('Extracting simulation data...'):
@@ -1353,7 +1353,7 @@ if mode == 'Configuration':
                         st.exception(e)
 
             with col_partload:
-                st.button('Partial load Simulation', on_click=switch2partload, use_container_width=True)
+                st.button('Partial load Simulation', on_click=switch2partload, width='stretch')
 
             st.info(
                 'To calculate the partial load, press "Partial load simulation".'
