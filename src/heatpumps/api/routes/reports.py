@@ -6,12 +6,15 @@ This module provides endpoints for:
 - Retrieving reports by ID
 - Deleting reports
 - Listing available reports
+- Viewing reports as HTML
 """
 
 import logging
+import json
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, Any, List
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from heatpumps.api.schemas import (
     SaveReportRequest,
     SaveReportResponse,
@@ -23,7 +26,37 @@ from heatpumps.api.services.storage import StorageService
 
 logger = logging.getLogger(__name__)
 
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 router = APIRouter()
+
+# Initialize Jinja2 templates
+template_dir = Path(__file__).parent.parent / "templates"
+templates = Jinja2Templates(directory=str(template_dir))
+
+
+def load_refrigerant_database() -> dict:
+    """
+    Load refrigerant properties database from static files.
+
+    Returns:
+        Dictionary of refrigerant properties
+    """
+    try:
+        static_path = Path(__file__).parent.parent.parent / "static"
+        refrigerants_file = static_path / "refrigerants.json"
+
+        if refrigerants_file.exists():
+            with open(refrigerants_file) as f:
+                return json.load(f)
+        else:
+            logger.warning(f"Refrigerants database not found at {refrigerants_file}")
+            return {}
+    except Exception as e:
+        logger.error(f"Failed to load refrigerant database: {e}")
+        return {}
+
+
 
 
 def get_storage_service(settings: Settings = Depends(get_settings)) -> StorageService:
@@ -182,6 +215,76 @@ async def get_report(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve report: {str(e)}"
+        )
+
+
+@router.get(
+    "/{report_id}/view",
+    response_class=HTMLResponse,
+    summary="View simulation report as HTML",
+    description="Render HTML view of simulation report matching Streamlit UI",
+    responses={
+        200: {"description": "HTML report rendered successfully"},
+        404: {"model": ErrorResponse, "description": "Report not found"},
+        503: {"model": ErrorResponse, "description": "Storage service unavailable"}
+    }
+)
+async def view_report_html(
+    report_id: str,
+    request: Request,
+    storage: StorageService = Depends(get_storage_service)
+):
+    """
+    Render HTML view of a simulation report.
+
+    Returns HTML page with:
+    - Configuration results metrics
+    - Topology & Refrigerant info
+    - State variables table
+    - Economic evaluation
+    - Exergy assessment with Sankey diagram
+
+    Args:
+        report_id: Unique report identifier
+        request: FastAPI request object (for template context)
+        storage: Storage service dependency
+
+    Returns:
+        HTML page rendered from template
+
+    Raises:
+        HTTPException: If report not found or rendering fails
+    """
+    try:
+        logger.info(f"Rendering HTML view for report {report_id}")
+
+        # Download report JSON from Cloud Storage
+        report_data = await storage.download_json(report_id=report_id)
+
+        # Load refrigerant database for properties table
+        refrigerants = load_refrigerant_database()
+
+        # Prepare template context
+        context = {
+            "request": request,
+            "report_id": report_id,
+            "report_data": report_data,
+            "refrigerants": refrigerants,
+        }
+
+        return templates.TemplateResponse("report.html", context)
+
+    except FileNotFoundError:
+        logger.warning(f"Report {report_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Report {report_id} not found"
+        )
+    except Exception as e:
+        logger.error(f"Error rendering report {report_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to render report: {str(e)}"
         )
 
 

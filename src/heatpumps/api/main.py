@@ -4,9 +4,11 @@ FastAPI application entry point for heatpump simulator API.
 This module initializes the FastAPI application and registers all routes.
 """
 
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from heatpumps.api.routes import simulate, models, tasks, reports
 from heatpumps.api.config import settings
@@ -28,6 +30,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files directory for topology SVGs, logos, etc.
+static_path = Path(__file__).parent.parent / "static"
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
 # Include routers
 app.include_router(simulate.router, prefix="/api/v1/simulate", tags=["Simulation"])

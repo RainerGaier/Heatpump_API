@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Configuration Results - 4-column metrics -->
+{% if report_data.configuration_results %}
+<section class="results-section">
+    <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">Configuration Results</h2>
+
+    <div class="metrics-grid">
+        {% if report_data.configuration_results.cop is not none %}
+        <div class="metric-card">
+            <div class="metric-label">COP</div>
+            <div class="metric-value">{{ "%.2f"|format(report_data.configuration_results.cop) }}</div>
+        </div>
+        {% endif %}
+
+        {% if report_data.configuration_results.heat_output_w is not none %}
+        <div class="metric-card">
+            <div class="metric-label">Q̇<sub>ab</sub> (W)</div>
+            <div class="metric-value">{{ "{:,.0f}".format(report_data.configuration_results.heat_output_w) }}</div>
+        </div>
+        {% endif %}
+
+        {% if report_data.configuration_results.power_input_w is not none %}
+        <div class="metric-card">
+            <div class="metric-label">P<sub>zu</sub> (W)</div>
+            <div class="metric-value">{{ "{:,.0f}".format(report_data.configuration_results.power_input_w) }}</div>
+        </div>
+        {% endif %}
+
+        {% if report_data.configuration_results.heat_input_w is not none %}
+        <div class="metric-card">
+            <div class="metric-label">Q̇<sub>zu</sub> (W)</div>
+            <div class="metric-value">{{ "{:,.0f}".format(report_data.configuration_results.heat_input_w) }}</div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Topology & Refrigerant - Expander -->
+{% if report_data.topology_refrigerant %}
+<div class="expander">
+    <div class="expander-header">
+        <span>Topology & Refrigerant</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <div class="two-column-grid">
+            <!-- Topology SVG -->
+            <div class="svg-container">
+                <h3 style="margin-bottom: 1rem;">Heat Pump Topology</h3>
+                <p style="color: var(--text-secondary);">
+                    Model: <strong>{{ report_data.topology_refrigerant.model_type }}</strong>
+                </p>
+                {% if report_data.metadata.model_name %}
+                <img src="/static/img/topologies/hp_{{ report_data.metadata.model_name }}_label.svg" 
+                     alt="Heat Pump Topology" 
+                     style="max-width: 100%; height: auto; background: white; padding: 1rem; border-radius: 8px;" 
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <p style="display: none; color: var(--text-secondary); font-style: italic;">Topology diagram not available for this model</p>
+                {% else %}
+                <p style="color: var(--text-secondary); font-style: italic;">Topology diagram not available</p>
+                {% endif %}
+            </div>
+
+            <!-- Refrigerant Properties -->
+            <div>
+                <h3 style="margin-bottom: 1rem;">Refrigerant Properties</h3>
+                {% if report_data.topology_refrigerant.refrigerant %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Refrigerant</td>
+                            <td><strong>{{ report_data.topology_refrigerant.refrigerant }}</strong></td>
+                        </tr>
+                        {% if refrigerants and report_data.topology_refrigerant.refrigerant in refrigerants %}
+                        {% set ref_data = refrigerants[report_data.topology_refrigerant.refrigerant] %}
+                        <tr>
+                            <td>Type</td>
+                            <td>{{ ref_data.Type if ref_data.Type else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td>T<sub>NBP</sub> (°C)</td>
+                            <td>{{ "%.2f"|format(ref_data.T_NBP) if ref_data.T_NBP is not none else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td>T<sub>crit</sub> (°C)</td>
+                            <td>{{ "%.2f"|format(ref_data.T_crit) if ref_data.T_crit is not none else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td>p<sub>crit</sub> (bar)</td>
+                            <td>{{ "%.2f"|format(ref_data.p_crit) if ref_data.p_crit is not none else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td>ASHRAE 34</td>
+                            <td>{{ ref_data.ASHRAE34 if ref_data.ASHRAE34 else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td>ODP</td>
+                            <td>{{ "%.3f"|format(ref_data.ODP) if ref_data.ODP is not none else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td>GWP<sub>100</sub></td>
+                            <td>{{ "{:,.0f}".format(ref_data.GWP100) if ref_data.GWP100 is not none else 'N/A' }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                {% endif %}
+                <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">All fabric data and classifications from <a href="http://www.coolprop.org" target="_blank">Coolprop</a> or <a href="https://doi.org/10.1016/J.ENERGY.2018.03.166" target="_blank">Arpagaus et al. (2018)</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- State Variables - Expander -->
+{% if report_data.state_variables %}
+<div class="expander">
+    <div class="expander-header">
+        <span>State Variables</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Connection</th>
+                        <th>m (kg/s)</th>
+                        <th>p (bar)</th>
+                        <th>h (kJ/kg)</th>
+                        <th>T (°C)</th>
+                        <th>s (kJ/kgK)</th>
+                        <th>v (m³/kg)</th>
+                        <th>x (-)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conn_data in report_data.state_variables.connections %}
+                    <tr>
+                        <td><strong>{{ report_data.state_variables.index[loop.index0] if report_data.state_variables.index else loop.index0 }}</strong></td>
+                        <td>{{ "%.5g"|format(conn_data.m) if conn_data.m is not none else '-' }}</td>
+                        <td>{{ "%.5g"|format(conn_data.p) if conn_data.p is not none else '-' }}</td>
+                        <td>{{ "%.5g"|format(conn_data.h) if conn_data.h is not none else '-' }}</td>
+                        <td>{{ "%.5g"|format(conn_data.T) if conn_data.T is not none else '-' }}</td>
+                        <td>{{ "%.5g"|format(conn_data.s) if conn_data.s is not none else '-' }}</td>
+                        <td>{{ "%.5g"|format(conn_data.v) if conn_data.v is not none else '-' }}</td>
+                        <td>{{ "%.5g"|format(conn_data.x) if conn_data.x is not none else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- State Diagrams - Expander -->
+<div class="expander">
+    <div class="expander-header">
+        <span>State Diagrams</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <p style="color: var(--text-secondary); font-style: italic; text-align: center; padding: 2rem;">
+            State diagrams (P-h and T-s) are not yet available in HTML reports. These diagrams require server-side image generation.
+        </p>
+    </div>
+</div>
+
+
+<!-- Economic Evaluation - Expander -->
+{% if report_data.economic_evaluation %}
+<div class="expander">
+    <div class="expander-header">
+        <span>Economic Evaluation</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% if report_data.economic_evaluation %}
+        <div class="two-column-grid" style="margin-bottom: 2rem;">
+            {% if report_data.economic_evaluation.total_cost_eur is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Total Investment Cost</div>
+                <div class="metric-value" style="font-size: 2rem;">
+                    {{ "{:,.2f}".format(report_data.economic_evaluation.total_cost_eur) }} €
+                </div>
+            </div>
+            {% endif %}
+
+            {% if report_data.economic_evaluation.specific_cost_eur_per_mw is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Specific Investment Cost</div>
+                <div class="metric-value" style="font-size: 2rem;">
+                    {{ "{:,.2f}".format(report_data.economic_evaluation.specific_cost_eur_per_mw) }} €/kW
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if report_data.economic_evaluation.component_costs %}
+        <h3 style="margin-top: 1rem; margin-bottom: 0.5rem;">Component Costs</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Cost (€)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for component, cost in report_data.economic_evaluation.component_costs.items() %}
+                <tr>
+                    <td>{{ component }}</td>
+                    <td>{{ "{:,.2f}".format(cost) if cost is not none else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">Methodology for the calculation of the costs analogous to <a href="https://doi.org/10.1016/j.enconman.2020.113488" target="_blank">Kosmadakis et al. (2020)</a>, based on <a href="https://www.wiley.com/en-us/Thermal+Design+and+Optimization-p-9780471584674" target="_blank">Bejan et al. (1995)</a>.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Exergy Assessment - Expander (default open) -->
+{% if report_data.exergy_assessment %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>Exergy Assessment</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% if report_data.exergy_assessment %}
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            {% if report_data.exergy_assessment.E_D_w is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Ė<sub>D,tot</sub> (W)</div>
+                <div class="metric-value" style="font-size: 1.75rem;">
+                    {{ "{:,.0f}".format(report_data.exergy_assessment.E_D_w) }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if report_data.exergy_assessment.epsilon is not none %}
+            <div class="metric-card">
+                <div class="metric-label">η<sub>ex</sub> (%)</div>
+                <div class="metric-value" style="font-size: 1.75rem;">
+                    {{ "%.2f"|format(report_data.exergy_assessment.epsilon) }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if report_data.exergy_assessment.E_F_w is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Ė<sub>F</sub> (W)</div>
+                <div class="metric-value" style="font-size: 1.75rem;">
+                    {{ "{:,.0f}".format(report_data.exergy_assessment.E_F_w) }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if report_data.exergy_assessment.E_P_w is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Ė<sub>P</sub> (W)</div>
+                <div class="metric-value" style="font-size: 1.75rem;">
+                    {{ "{:,.0f}".format(report_data.exergy_assessment.E_P_w) }}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+        {% endif %}
+
+        <!-- Sankey Diagram -->
+        {% if report_data.exergy_assessment.sankey_data %}
+        <div class="plotly-container" id="sankeyDiagram"></div>
+        {% endif %}
+
+        <!-- Component Exergy Table -->
+        {% if report_data.exergy_assessment.component_exergy %}
+        <h3 style="margin-top: 2rem; margin-bottom: 0.5rem;">Component Exergy Destruction</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Ė<sub>D</sub> (W)</th>
+                    <th>y<sub>D</sub> (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for component, exergy_data in report_data.exergy_assessment.component_exergy.items() %}
+                <tr>
+                    <td>{{ component }}</td>
+                    <td>{{ "{:,.2f}".format(exergy_data.destruction) if exergy_data.destruction is not none else 'N/A' }}</td>
+                    <td>{{ "%.2f"|format(exergy_data.destruction_ratio) if exergy_data.destruction_ratio is not none else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Parameters - Expander -->
+{% if report_data.parameters %}
+<div class="expander">
+    <div class="expander-header">
+        <span>Input Parameters</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% for section_name, section_data in report_data.parameters.items() %}
+        <div style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 0.5rem; text-transform: capitalize;">{{ section_name.replace('_', ' ') }}</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for param_name, param_value in section_data.items() %}
+                    <tr>
+                        <td>{{ param_name.replace('_', ' ').title() }}</td>
+                        <td>
+                            {% if param_value is number %}
+                                {{ "%.5g"|format(param_value) }}
+                            {% else %}
+                                {{ param_value }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Render Sankey Diagram if data exists -->
+{% if report_data.exergy_assessment and report_data.exergy_assessment.sankey_data %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var sankeyData = {{ report_data.exergy_assessment.sankey_data | tojson }};
+
+        // Plotly expects the data in specific format
+        Plotly.newPlot('sankeyDiagram', sankeyData.data, sankeyData.layout, {
+            responsive: true,
+            displayModeBar: true,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}
