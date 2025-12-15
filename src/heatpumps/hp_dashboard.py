@@ -344,8 +344,8 @@ with st.sidebar: # Logo Here RG
                         break
 
                 refrig_label = st.selectbox(
-                    '', refrigerants.keys(), index=refrig_index,
-                    key='refrigerant'
+                    'Refrigerant', refrigerants.keys(), index=refrig_index,
+                    key='refrigerant', label_visibility='collapsed'
                     )
                 params['setup']['refrig'] = refrigerants[refrig_label]['CP']
                 params['fluids']['wf'] = refrigerants[refrig_label]['CP']
@@ -475,42 +475,42 @@ with st.sidebar: # Logo Here RG
         with st.expander("C O M P R E S S O R"):
             if hp_model['comp_var'] is None and hp_model['nr_refrigs'] == 1:
                 params['comp']['eta_s'] = st.slider(
-                    'Efficiency $\eta_s$', min_value=0, max_value=100, step=1,
+                    r'Efficiency $\eta_s$', min_value=0, max_value=100, step=1,
                     value=int(params['comp']['eta_s']*100), format='%d%%'
                     ) / 100
             elif hp_model['comp_var'] is not None and hp_model['nr_refrigs'] == 1:
                 params['comp1']['eta_s'] = st.slider(
-                    'Efficiency $\eta_{s,1}$', min_value=0, max_value=100, step=1,
+                    r'Efficiency $\eta_{s,1}$', min_value=0, max_value=100, step=1,
                     value=int(params['comp1']['eta_s']*100), format='%d%%'
                     ) / 100
                 params['comp2']['eta_s'] = st.slider(
-                    'Efficiency $\eta_{s,2}$', min_value=0, max_value=100, step=1,
+                    r'Efficiency $\eta_{s,2}$', min_value=0, max_value=100, step=1,
                     value=int(params['comp2']['eta_s']*100), format='%d%%'
                     ) / 100
             elif hp_model['comp_var'] is None and hp_model['nr_refrigs'] == 2:
                 params['HT_comp']['eta_s'] = st.slider(
-                    'Efficiency $\eta_{s,HTK}$', min_value=0, max_value=100, step=1,
+                    r'Efficiency $\eta_{s,HTK}$', min_value=0, max_value=100, step=1,
                     value=int(params['HT_comp']['eta_s']*100), format='%d%%'
                     ) / 100
                 params['LT_comp']['eta_s'] = st.slider(
-                    'Efficiency $\eta_{s,NTK}$', min_value=0, max_value=100, step=1,
+                    r'Efficiency $\eta_{s,NTK}$', min_value=0, max_value=100, step=1,
                     value=int(params['LT_comp']['eta_s']*100), format='%d%%'
                     ) / 100
             elif hp_model['comp_var'] is not None and hp_model['nr_refrigs'] == 2:
                 params['HT_comp1']['eta_s'] = st.slider(
-                    'Efficiency $\eta_{s,HTK,1}$', min_value=0, max_value=100, step=1,
+                    r'Efficiency $\eta_{s,HTK,1}$', min_value=0, max_value=100, step=1,
                     value=int(params['HT_comp1']['eta_s']*100), format='%d%%'
                     ) / 100
                 params['HT_comp2']['eta_s'] = st.slider(
-                    'Efficiency $\eta_{s,HTK,2}$', min_value=0, max_value=100, step=1,
+                    r'Efficiency $\eta_{s,HTK,2}$', min_value=0, max_value=100, step=1,
                     value=int(params['HT_comp2']['eta_s']*100), format='%d%%'
                     ) / 100
                 params['LT_comp1']['eta_s'] = st.slider(
-                    'Efficiency $\eta_{s,NTK,1}$', min_value=0, max_value=100, step=1,
+                    r'Efficiency $\eta_{s,NTK,1}$', min_value=0, max_value=100, step=1,
                     value=int(params['LT_comp1']['eta_s']*100), format='%d%%'
                     ) / 100
                 params['LT_comp2']['eta_s'] = st.slider(
-                    'Efficiency $\eta_{s,NTK,2}$', min_value=0, max_value=100, step=1,
+                    r'Efficiency $\eta_{s,NTK,2}$', min_value=0, max_value=100, step=1,
                     value=int(params['LT_comp2']['eta_s']*100), format='%d%%'
                     ) / 100
 
