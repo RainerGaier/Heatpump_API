@@ -292,12 +292,12 @@ Args:
         ),
         Tool(
             name="get_report_json_url",
-            description="""Get the raw JSON data URL for a report.
+            description="""Get the full JSON data URL for a report.
 
-Use this when the user wants access to the full simulation data in JSON format,
-for downloading, data analysis, or programmatic access.
+Use this when the user wants access to the complete simulation data in JSON format,
+including all state variables, exergy analysis, economic evaluation, and parameters.
 
-This returns the direct URL to the raw JSON file stored in Google Cloud Storage.
+The URL returns the full report data via the API endpoint (not the GCS storage URL).
 
 Args:
     report_id: The UUID of the report""",
@@ -547,7 +547,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
                 result += f"\n## Report URLs\n\n"
                 result += f"**HTML Report (interactive):**\n{API_BASE_URL}/api/v1/reports/{report_id}/view\n\n"
-                result += f"**Raw JSON Data:**\n{API_BASE_URL}/api/v1/reports/{report_id}/url\n"
+                result += f"**Full JSON Data:**\n{API_BASE_URL}/api/v1/reports/{report_id}\n"
             elif response.status_code == 404:
                 result = f"# Report Not Found\n\nNo report found with ID: `{report_id}`"
             else:
@@ -600,21 +600,25 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         elif name == "get_report_json_url":
             report_id = arguments["report_id"]
 
-            # Call the API to get the signed URL for the raw JSON
-            response = await client.get(f"{API_BASE_URL}/api/v1/reports/{report_id}/url")
+            # The full JSON data is available at the API endpoint directly
+            json_url = f"{API_BASE_URL}/api/v1/reports/{report_id}"
+
+            # Verify the report exists
+            response = await client.head(json_url)
 
             if response.status_code == 200:
-                data = response.json()
-                json_url = data.get("signed_url", "")
-
-                result = f"# Raw JSON Data URL\n\n"
+                result = f"# Full JSON Data URL\n\n"
                 result += f"**Report ID:** `{report_id}`\n\n"
                 result += f"**JSON Data URL:**\n{json_url}\n\n"
-                result += "*This URL provides direct access to the full simulation data in JSON format.*"
+                result += "*This URL returns the complete simulation data including all state variables, exergy analysis, and parameters in JSON format.*"
             elif response.status_code == 404:
                 result = f"# Report Not Found\n\nNo report found with ID: `{report_id}`"
             else:
-                result = f"# Error Getting JSON URL\n\n**Status:** {response.status_code}"
+                # Even if HEAD fails, provide the URL (GET might work)
+                result = f"# Full JSON Data URL\n\n"
+                result += f"**Report ID:** `{report_id}`\n\n"
+                result += f"**JSON Data URL:**\n{json_url}\n\n"
+                result += "*This URL returns the complete simulation data in JSON format.*"
 
             return [TextContent(type="text", text=result)]
 
