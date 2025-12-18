@@ -275,7 +275,29 @@ Args:
             description="""Get the HTML view URL for a report.
 
 Use this when you want to provide the user with a link to view
-the full interactive report in their browser.
+the full interactive report in their browser (with diagrams and formatting).
+
+Args:
+    report_id: The UUID of the report""",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "report_id": {
+                        "type": "string",
+                        "description": "UUID of the report",
+                    }
+                },
+                "required": ["report_id"],
+            },
+        ),
+        Tool(
+            name="get_report_json_url",
+            description="""Get the raw JSON data URL for a report.
+
+Use this when the user wants access to the full simulation data in JSON format,
+for downloading, data analysis, or programmatic access.
+
+This returns the direct URL to the raw JSON file stored in Google Cloud Storage.
 
 Args:
     report_id: The UUID of the report""",
@@ -523,8 +545,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                     if config.get("power_input_w"):
                         result += f"- **Power Input:** {config['power_input_w']/1000:.1f} kW\n"
 
-                result += f"\n## View Full Report\n\n"
-                result += f"{API_BASE_URL}/api/v1/reports/{report_id}/view"
+                result += f"\n## Report URLs\n\n"
+                result += f"**HTML Report (interactive):**\n{API_BASE_URL}/api/v1/reports/{report_id}/view\n\n"
+                result += f"**Raw JSON Data:**\n{API_BASE_URL}/api/v1/reports/{report_id}/url\n"
             elif response.status_code == 404:
                 result = f"# Report Not Found\n\nNo report found with ID: `{report_id}`"
             else:
@@ -571,6 +594,27 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             result += f"**Report ID:** `{report_id}`\n\n"
             result += f"**HTML Report URL:**\n{view_url}\n\n"
             result += "*Open this URL in a browser to view the full interactive report with diagrams.*"
+
+            return [TextContent(type="text", text=result)]
+
+        elif name == "get_report_json_url":
+            report_id = arguments["report_id"]
+
+            # Call the API to get the signed URL for the raw JSON
+            response = await client.get(f"{API_BASE_URL}/api/v1/reports/{report_id}/url")
+
+            if response.status_code == 200:
+                data = response.json()
+                json_url = data.get("signed_url", "")
+
+                result = f"# Raw JSON Data URL\n\n"
+                result += f"**Report ID:** `{report_id}`\n\n"
+                result += f"**JSON Data URL:**\n{json_url}\n\n"
+                result += "*This URL provides direct access to the full simulation data in JSON format.*"
+            elif response.status_code == 404:
+                result = f"# Report Not Found\n\nNo report found with ID: `{report_id}`"
+            else:
+                result = f"# Error Getting JSON URL\n\n**Status:** {response.status_code}"
 
             return [TextContent(type="text", text=result)]
 
