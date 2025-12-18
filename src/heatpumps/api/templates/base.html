@@ -22,6 +22,7 @@
             --text-secondary: #6c757d;
             --metric-bg: #f0f7ff;
             --expander-bg: #f8f9fa;
+            --baby-blue: #74ADC0;
         }
 
         body {
@@ -132,9 +133,9 @@
             border-bottom: none;
         }
 
-        /* Header */
+        /* Header - Solid baby blue */
         .report-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background-color: var(--baby-blue);
             color: white;
             padding: 2rem;
             border-radius: 8px;
@@ -151,6 +152,14 @@
             font-size: 1rem;
             opacity: 0.9;
             margin-top: 0.5rem;
+        }
+
+        .project-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(255,255,255,0.3);
         }
 
         /* Footer */
@@ -210,7 +219,92 @@
             max-width: 100%;
             height: auto;
         }
-/* Hyperlinks */        a {            color: #1f77b4;            text-decoration: none;        }        a:hover {            color: #155a8a;            text-decoration: underline;        }        a:visited {            color: #1f77b4;        }
+
+        /* Hyperlinks */
+        a {
+            color: #1f77b4;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #155a8a;
+            text-decoration: underline;
+        }
+
+        a:visited {
+            color: #1f77b4;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                font-size: 12pt;
+                line-height: 1.4;
+            }
+
+            .report-header {
+                background-color: #74ADC0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .expander {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .expander-content {
+                display: block !important;
+            }
+
+            .expander-icon {
+                display: none;
+            }
+
+            .expander-header {
+                cursor: default;
+            }
+
+            /* Ensure diagrams fit on page */
+            .svg-container img {
+                max-width: 100%;
+                max-height: 500px;
+                object-fit: contain;
+                page-break-inside: avoid;
+            }
+
+            .two-column-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            /* Force page breaks before major sections */
+            .expander {
+                page-break-before: auto;
+            }
+
+            /* Avoid page breaks inside tables */
+            .data-table {
+                page-break-inside: avoid;
+            }
+
+            /* Hide interactive elements */
+            .plotly-container {
+                display: none;
+            }
+
+            /* Ensure metric cards print nicely */
+            .metric-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                background-color: #f0f7ff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
@@ -219,6 +313,9 @@
         <header class="report-header">
             <h1 class="report-title">Heat Pump Simulation Report</h1>
             <p class="report-subtitle">{% block subtitle %}Report ID: {{ report_id }}{% endblock %}</p>
+            {% if report_data and report_data.metadata and report_data.metadata.project_name %}
+            <p class="project-name">{{ report_data.metadata.project_name }}</p>
+            {% endif %}
         </header>
 
         <!-- Main Content -->

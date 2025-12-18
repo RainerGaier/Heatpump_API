@@ -23,6 +23,8 @@ from heatpumps.api.schemas import (
 )
 from heatpumps.api.config import Settings, get_settings
 from heatpumps.api.services.storage import StorageService
+from heatpumps.api.services.diagrams import DiagramGenerator
+from heatpumps.api.parameter_descriptions import get_all_descriptions
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,8 @@ router = APIRouter()
 
 # Initialize Jinja2 templates
 template_dir = Path(__file__).parent.parent / "templates"
+# Initialize diagram generator
+diagram_generator = DiagramGenerator()
 templates = Jinja2Templates(directory=str(template_dir))
 
 
@@ -264,12 +268,42 @@ async def view_report_html(
         # Load refrigerant database for properties table
         refrigerants = load_refrigerant_database()
 
+        # Generate diagrams if state points are available
+        diagram_paths = {}
+        try:
+            # Extract data for diagram generation
+            refrigerant = report_data.get("metadata", {}).get("refrigerant", "R134a")
+            state_points_data = report_data.get("state_variables", {}).get("connections", [])
+            exergy_data = report_data.get("exergy_assessment", {})
+            metadata = report_data.get("metadata", {})
+
+            if state_points_data and len(state_points_data) > 0:
+                logger.info(f"Generating diagrams for report {report_id}, refrigerant: {refrigerant}")
+                logger.info(f"State points count: {len(state_points_data)}")
+                logger.info(f"Exergy data keys: {list(exergy_data.keys()) if exergy_data else 'None'}")
+
+                diagram_paths = diagram_generator.generate_all_diagrams(
+                    report_id=report_id,
+                    refrigerant=refrigerant,
+                    state_points=state_points_data,
+                    exergy_data=exergy_data,
+                    metadata=metadata
+                )
+                logger.info(f"Generated diagrams: {diagram_paths}")
+            else:
+                logger.warning(f"No state points found for report {report_id}, skipping diagram generation")
+        except Exception as e:
+            logger.error(f"Failed to generate diagrams: {e}")
+            # Continue without diagrams
+
         # Prepare template context
         context = {
             "request": request,
             "report_id": report_id,
             "report_data": report_data,
             "refrigerants": refrigerants,
+            "diagram_paths": diagram_paths,
+            "param_descriptions": get_all_descriptions(),
         }
 
         return templates.TemplateResponse("report.html", context)

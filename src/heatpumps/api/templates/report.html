@@ -2,6 +2,8 @@
 
 {% block content %}
 
+{# param_descriptions is now passed from the Python backend via parameter_descriptions.py #}
+
 <!-- Configuration Results - 4-column metrics -->
 {% if report_data.configuration_results %}
 <section class="results-section">
@@ -39,6 +41,49 @@
 </section>
 {% endif %}
 
+<!-- Input Parameters - Expander (moved to top) -->
+{% if report_data.parameters %}
+<div class="expander">
+    <div class="expander-header">
+        <span>Input Parameters</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% for section_name, section_data in report_data.parameters.items() %}
+        <div style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 0.5rem; text-transform: capitalize;">{{ section_name.replace('_', ' ') }}</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for param_name, param_value in section_data.items() %}
+                    <tr>
+                        <td>{{ param_name.replace('_', ' ').title() }}</td>
+                        <td>
+                            {% if param_value is number %}
+                                {{ "%.5g"|format(param_value) }}
+                            {% else %}
+                                {{ param_value }}
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.875rem;">
+                            {{ param_descriptions.get(param_name, '') }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Topology & Refrigerant - Expander -->
 {% if report_data.topology_refrigerant %}
 <div class="expander">
@@ -55,9 +100,9 @@
                     Model: <strong>{{ report_data.topology_refrigerant.model_type }}</strong>
                 </p>
                 {% if report_data.metadata.model_name %}
-                <img src="/static/img/topologies/hp_{{ report_data.metadata.model_name }}_label.svg" 
-                     alt="Heat Pump Topology" 
-                     style="max-width: 100%; height: auto; background: white; padding: 1rem; border-radius: 8px;" 
+                <img src="/static/img/topologies/hp_{{ report_data.metadata.model_name }}_label.svg"
+                     alt="Heat Pump Topology"
+                     style="max-width: 100%; height: auto; background: white; padding: 1rem; border-radius: 8px;"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                 <p style="display: none; color: var(--text-secondary); font-style: italic;">Topology diagram not available for this model</p>
                 {% else %}
@@ -171,9 +216,31 @@
         <span class="expander-icon">▼</span>
     </div>
     <div class="expander-content">
+        {% if diagram_paths and (diagram_paths.get('ph') or diagram_paths.get('ts')) %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 2rem; margin: 1rem 0;">
+            {% if diagram_paths.get('ph') %}
+            <div class="svg-container">
+                <h4 style="margin-bottom: 1rem;">Pressure-Enthalpy (P-h) Diagram</h4>
+                <img src="/static/img/{{ diagram_paths.ph }}"
+                     alt="P-h Diagram"
+                     style="max-width: 100%; height: auto;">
+            </div>
+            {% endif %}
+
+            {% if diagram_paths.get('ts') %}
+            <div class="svg-container">
+                <h4 style="margin-bottom: 1rem;">Temperature-Entropy (T-s) Diagram</h4>
+                <img src="/static/img/{{ diagram_paths.ts }}"
+                     alt="T-s Diagram"
+                     style="max-width: 100%; height: auto;">
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
         <p style="color: var(--text-secondary); font-style: italic; text-align: center; padding: 2rem;">
-            State diagrams (P-h and T-s) are not yet available in HTML reports. These diagrams require server-side image generation.
+            State diagrams are not available for this report.
         </p>
+        {% endif %}
     </div>
 </div>
 
@@ -308,45 +375,16 @@
             </tbody>
         </table>
         {% endif %}
-    </div>
-</div>
-{% endif %}
 
-<!-- Parameters - Expander -->
-{% if report_data.parameters %}
-<div class="expander">
-    <div class="expander-header">
-        <span>Input Parameters</span>
-        <span class="expander-icon">▼</span>
-    </div>
-    <div class="expander-content">
-        {% for section_name, section_data in report_data.parameters.items() %}
-        <div style="margin-bottom: 1.5rem;">
-            <h3 style="margin-bottom: 0.5rem; text-transform: capitalize;">{{ section_name.replace('_', ' ') }}</h3>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Parameter</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for param_name, param_value in section_data.items() %}
-                    <tr>
-                        <td>{{ param_name.replace('_', ' ').title() }}</td>
-                        <td>
-                            {% if param_value is number %}
-                                {{ "%.5g"|format(param_value) }}
-                            {% else %}
-                                {{ param_value }}
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Waterfall Diagram -->
+        {% if diagram_paths and diagram_paths.get('waterfall') %}
+        <h3 style="margin-top: 2rem; margin-bottom: 0.5rem;">Exergy Destruction Waterfall</h3>
+        <div class="svg-container" style="margin-top: 1rem;">
+            <img src="/static/img/{{ diagram_paths.waterfall }}"
+                 alt="Exergy Destruction Waterfall"
+                 style="max-width: 100%; height: auto;">
         </div>
-        {% endfor %}
+        {% endif %}
     </div>
 </div>
 {% endif %}

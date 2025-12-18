@@ -49,6 +49,32 @@ def sanitize_for_json(obj):
         return obj
 
 
+def extract_sankey_diagram_data(hp_object) -> Optional[dict]:
+    """
+    Extract Sankey diagram from heat pump object as Plotly dict.
+
+    This function attempts to generate the exergy Sankey diagram
+    and convert it to a JSON-serializable Plotly format for
+    embedding in HTML reports.
+
+    Args:
+        hp_object: Heat pump model instance from simulation
+
+    Returns:
+        Plotly-compatible dictionary or None if not available
+    """
+    try:
+        if hasattr(hp_object, 'generate_sankey_diagram'):
+            sankey_fig = hp_object.generate_sankey_diagram()
+            if sankey_fig:
+                # Convert to dict for JSON serialization
+                return sankey_fig.to_dict()
+        return None
+    except Exception as e:
+        logger.warning(f"Could not extract Sankey diagram data: {e}")
+        return None
+
+
 def extract_report_data(hp_object) -> Dict[str, Any]:
     """
     Extract complete simulation data from heat pump object for report generation.
@@ -257,6 +283,9 @@ def _extract_exergy_assessment(hp_object) -> Dict[str, Any]:
         # Add exergy efficiency from hp object if available
         if hasattr(hp_object, "epsilon"):
             exergy_data["epsilon"] = float(hp_object.epsilon)
+
+        # Add Sankey diagram data
+        exergy_data["sankey_data"] = extract_sankey_diagram_data(hp_object)
 
         return exergy_data
 

@@ -142,11 +142,17 @@ class StorageService:
                 content_type=content_type
             )
 
-            # Set metadata
+            # Set metadata (extract key fields from data for quick listing)
+            report_metadata = data.get("metadata", {})
             blob.metadata = {
                 "report_id": report_id,
                 "created_at": datetime.utcnow().isoformat(),
-                "content_type": content_type
+                "content_type": content_type,
+                "project_name": report_metadata.get("project_name", "Untitled Project"),
+                "model_name": report_metadata.get("model_name", "Unknown"),
+                "model_display_name": report_metadata.get("model_display_name", "Unknown"),
+                "refrigerant": report_metadata.get("refrigerant", "Unknown"),
+                "topology": report_metadata.get("topology", "Unknown"),
             }
             blob.patch()
 

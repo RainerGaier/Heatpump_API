@@ -412,7 +412,9 @@ class ReportMetadata(BaseModel):
 
     report_id: str = Field(..., description="Unique report identifier (UUID)")
     created_at: str = Field(..., description="ISO timestamp of report creation")
-    model_name: str = Field(..., description="Name of the heat pump model")
+    project_name: Optional[str] = Field(None, description="User-defined project name")
+    model_name: str = Field(..., description="Model key for SVG lookup (e.g., 'ic', 'ihx', 'simple')")
+    model_display_name: Optional[str] = Field(None, description="Human-readable model name")
     topology: str = Field(..., description="Heat pump topology type")
     refrigerant: str = Field(..., description="Refrigerant name")
     api_version: Optional[str] = Field(None, description="API version used")

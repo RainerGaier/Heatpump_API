@@ -54,7 +54,7 @@ def debug_refrigerant_state(mode="None"):
 
     def log_dataframe(df, caption=None):
         if mode == "Streamlit":
-            st.dataframe(df, width='stretch')
+            st.dataframe(df, use_container_width=True)
         else:
             print(f"\n--- {caption or 'Data Preview'} ---")
             print(df.head())
@@ -240,7 +240,17 @@ with st.sidebar: # Logo Here RG
         logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2.svg')
     else:
         logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2_dark.svg')
-    st.image(logo, width='stretch')
+    st.image(logo, use_container_width=True)
+
+    # Project Name input
+    st.text_input(
+        "Project Name",
+        value=ss.get('project_name', 'Untitled Project'),
+        key='project_name',
+        help="Enter a name to identify this simulation project"
+    )
+
+    st.markdown("""---""")
 
     mode = st.selectbox(
         "Selection mode",
@@ -862,12 +872,12 @@ if mode == 'Configuration':
             st.subheader('Refrigerant')
 
             if hp_model['nr_refrigs'] == 1:
-                st.dataframe(df_refrig, width='stretch')
+                st.dataframe(df_refrig, use_container_width=True)
             elif hp_model['nr_refrigs'] == 2:
                 st.markdown("#### High temperature circuit")
-                st.dataframe(df_refrig2, width='stretch')
+                st.dataframe(df_refrig2, use_container_width=True)
                 st.markdown("#### Low temperature circuit")
-                st.dataframe(df_refrig1, width='stretch')
+                st.dataframe(df_refrig1, use_container_width=True)
 
             st.write("""
                 All fabric data and classifications from [Coolprop] (http://www.coolprop.org) or [Arpagaus et al. (2018)] (https://doi.org/10.1016/J.ENERGY.2018.03.166)
@@ -995,12 +1005,12 @@ if mode == 'Configuration':
                     st.subheader('Refrigerant')
 
                     if hp_model['nr_refrigs'] == 1:
-                        st.dataframe(df_refrig, width='stretch')
+                        st.dataframe(df_refrig, use_container_width=True)
                     elif hp_model['nr_refrigs'] == 2:
                         st.markdown("#### High temperature circuit")
-                        st.dataframe(df_refrig2, width='stretch')
+                        st.dataframe(df_refrig2, use_container_width=True)
                         st.markdown("#### Low temperature circuit")
-                        st.dataframe(df_refrig1, width='stretch')
+                        st.dataframe(df_refrig1, use_container_width=True)
 
                     st.write("""
                              All fabric data and classifications from [Coolprop] (http://www.coolprop.org) or [Arpagaus et al. (2018)] (https://doi.org/10.1016/J.ENERGY.2018.03.166)
@@ -1168,7 +1178,7 @@ if mode == 'Configuration':
                         },
                     inplace=True)
                 st.dataframe(
-                    data=state_quantities, width='stretch'
+                    data=state_quantities, use_container_width=True
                     )
 
             with st.expander("E C O N O M I C &nbsp; E V A L U A T I O N"):
@@ -1189,7 +1199,7 @@ if mode == 'Configuration':
                     k: [round(v, 2)]
                     for k, v in ss.hp.cost.items()
                     })
-                st.dataframe(costdata, width='stretch', hide_index=True)
+                st.dataframe(costdata, use_container_width=True, hide_index=True)
 
                 st.write(""" Methodology for the calculation of the costs analogous to [Kosmadakis et al. (2020)] (https://doi.org/10.1016/j.enconman.2020.113488), based on [Bejan et al.(1995)] (https://www.wiley.com/en-us/thermal+Design+And+optimization-P-9780471584674).""")
 
@@ -1243,7 +1253,7 @@ if mode == 'Configuration':
                     },
                     inplace=True)
                 st.dataframe(
-                    data=exergy_component_result, width='stretch'
+                    data=exergy_component_result, use_container_width=True
                     )
 
                 col6, _, col7 = st.columns([0.495, 0.01, 0.495])
@@ -1253,7 +1263,7 @@ if mode == 'Configuration':
 
                     diagram_sankey = ss.hp.generate_sankey_diagram()
                     diagram_placeholder_sankey.plotly_chart(
-                        diagram_sankey, width='stretch'
+                        diagram_sankey
                         )
                 # RRG >>>
                 with col7:
@@ -1266,7 +1276,7 @@ if mode == 'Configuration':
                     diagram_waterfall = ss.hp.generate_waterfall_diagram()
 
                     if isinstance(diagram_waterfall, matplotlib.figure.Figure):
-                        diagram_placeholder_waterfall.pyplot(diagram_waterfall, width='stretch')
+                        diagram_placeholder_waterfall.pyplot(diagram_waterfall)
                     elif diagram_waterfall is None:
                         st.warning("⚠️ Waterfall diagram not generated — figure is `None`.")
                     else:
@@ -1298,7 +1308,7 @@ if mode == 'Configuration':
             col_report, col_partload = st.columns([1, 1])
 
             with col_report:
-                if st.button('📤 Save & Share Report', width='stretch'):
+                if st.button('📤 Save & Share Report', use_container_width=True):
                     try:
                         # Extract simulation data
                         with st.spinner('Extracting simulation data...'):
@@ -1309,18 +1319,28 @@ if mode == 'Configuration':
                         # Generate report ID
                         report_id = str(uuid.uuid4())
 
+                        # Get model key for SVG topology lookup (e.g., 'ic', 'ihx', 'simple')
+                        # Remove '_trans' suffix for topology SVG filename
+                        model_key = ss.get('previous_model', '')
+                        if '_trans' in model_key:
+                            model_key_topology = model_key.replace('_trans', '')
+                        else:
+                            model_key_topology = model_key
+
                         # Prepare metadata
                         metadata = {
                             "report_id": report_id,
                             "created_at": datetime.utcnow().isoformat() + "Z",
-                            "model_name": ss.hp.params.get('setup', {}).get('name', 'Heat Pump Model'),
+                            "project_name": ss.get('project_name', 'Untitled Project'),
+                            "model_name": model_key_topology,  # Model key for SVG lookup (e.g., 'ic', 'ihx')
+                            "model_display_name": ss.hp.params.get('setup', {}).get('name', 'Heat Pump Model'),
                             "topology": ss.hp.params.get('setup', {}).get('type', 'Unknown'),
                             "refrigerant": ss.hp.params.get('setup', {}).get('refrig', 'Unknown')
                         }
 
                         # Call API to save report
                         with st.spinner('Uploading to cloud storage...'):
-                            api_url = "https://heatpump-api-bo6wip2gyq-nw.a.run.app"
+                            api_url = "https://heatpump-api-382432690682.europe-west1.run.app"
                             response = httpx.post(
                                 f"{api_url}/api/v1/reports/save",
                                 json={
@@ -1334,14 +1354,36 @@ if mode == 'Configuration':
                             data = response.json()
                             st.success("✅ Report saved successfully!")
 
-                            # Display shareable URL
-                            st.markdown("### 🔗 Shareable URL")
-                            st.code(data['signed_url'], language="text")
+                            # Show HTML view URL as primary link
+                            st.markdown("### 🔗 View Report")
+                            report_id = data['report_id']
+                            view_url = f"{api_url}/api/v1/reports/{report_id}/view"
 
-                            st.info(f"📅 This link will remain accessible. You can share it with others to view your simulation results.")
+                            # Create columns for clickable link and copy button
+                            col_link, col_copy = st.columns([6, 1])
+                            with col_link:
+                                # Clickable hyperlink that opens in new tab
+                                st.markdown(
+                                    f'<a href="{view_url}" target="_blank" '
+                                    f'style="color: #1f77b4; text-decoration: none; font-family: monospace; font-size: 13px; word-break: break-all;">'
+                                    f'{view_url}</a>',
+                                    unsafe_allow_html=True
+                                )
+                            with col_copy:
+                                # Copy button with pyperclip-style functionality
+                                st.markdown(
+                                    f'''<button onclick="navigator.clipboard.writeText('{view_url}').then(() => alert('URL copied!'))"
+                                        style="background: #f0f2f6; border: 1px solid #ddd; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 16px;"
+                                        title="Copy URL to clipboard">📋</button>''',
+                                    unsafe_allow_html=True
+                                )
 
-                            # Display report ID for reference
-                            with st.expander("📋 Report Details"):
+                            st.info(f"📊 Click the link to open your interactive heat pump report in a new browser tab.")
+
+                            # JSON URL in expander
+                            with st.expander("📋 Advanced Options"):
+                                st.markdown("**Raw JSON Data:**")
+                                st.code(data['signed_url'], language="text")
                                 st.text(f"Report ID: {data['report_id']}")
                                 st.text(f"Storage: {data['storage_url']}")
                         else:
@@ -1353,7 +1395,7 @@ if mode == 'Configuration':
                         st.exception(e)
 
             with col_partload:
-                st.button('Partial load Simulation', on_click=switch2partload, width='stretch')
+                st.button('Partial load Simulation', on_click=switch2partload, use_container_width=True)
 
             st.info(
                 'To calculate the partial load, press "Partial load simulation".'
