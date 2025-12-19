@@ -72,8 +72,11 @@ Args:
             name="simulate_design_point",
             description="""Run a design point simulation for a heat pump.
 
-Runs full thermodynamic simulation using TESPy and returns COP,
-power consumption, heat output, and convergence status.
+Runs thermodynamic simulation using TESPy and returns basic performance metrics:
+COP, power consumption, heat output, efficiency, and convergence status.
+
+NOTE: This returns summary results only. For detailed state points, exergy analysis,
+and P-h/T-s diagrams, use the Streamlit interface at https://heatpumps-simulator.streamlit.app
 
 Args:
     model_name: Which topology to use (e.g., "ihx", "simple")
@@ -183,12 +186,19 @@ Args:
             description="""Save simulation results to cloud storage and get a shareable report URL.
 
 After running a simulation, use this tool to persist the results and generate
-an HTML report that can be viewed in a browser. The report includes:
-- Configuration results (COP, heat output, power input)
+an HTML report that can be viewed in a browser.
+
+**IMPORTANT:** Reports saved via MCP contain BASIC results only:
+- COP, heat output, power input
+- Basic configuration parameters
+
+For FULL detailed reports with the following, use the Streamlit web interface
+at https://heatpumps-simulator.streamlit.app :
 - P-h and T-s diagrams
-- Exergy analysis with waterfall diagram
-- State variables table
+- Exergy analysis with Sankey diagram
+- Complete state variables table
 - Economic evaluation
+- Topology diagrams
 
 Args:
     project_name: Name for this simulation project (e.g., "London Data Centre Phase 1")

@@ -214,10 +214,10 @@ with open(refrigpath, 'r', encoding='utf-8') as file:
     refrigerants = json.load(file)
 
 st.set_page_config(
-    layout='wide',
-    page_title='Heat pumps Dashboard',
-    page_icon=os.path.join(src_path, 'img', 'page_icon_ZNES.png')
-    )
+    layout="wide",
+    page_title="Heat pumps Dashboard",
+    page_icon=os.path.join(src_path, "img", "Logo_Small.png"),
+)
 
 is_dark = darkdetect.isDark()
 
@@ -237,9 +237,11 @@ with st.sidebar: # Logo Here RG
     # Note: _dark.svg files have darker lines for light backgrounds
     # Regular .svg files have lighter lines for dark backgrounds
     if is_dark:
-        logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2.svg')
+        #        logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2.svg')
+        logo = os.path.join(src_path, "img", "LotsaWatts_Logo.png")
     else:
-        logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2_dark.svg')
+        #        logo = os.path.join(src_path, 'img', 'Logo_ZNES_mitUnisV2_dark.svg')
+        logo = os.path.join(src_path, "img", "LotsaWatts_Logo.png")
     st.image(logo, use_container_width=True)
 
     # Project Name input
@@ -762,7 +764,7 @@ if mode == 'Start':
             #### Software used:
             The open source software TESPy is used to create models and calculate
             simulations. In addition, a number of other Python packages are used 
-            for data processing, preparation and visualization.
+            for data processing, preparation and visualisation.
 
             ---
 
@@ -776,20 +778,20 @@ if mode == 'Start':
             the underlying characteristics for each component of the system. 
             The component-based structure in combination with the solution 
             method offers a very high degree of flexibility with regard to 
-            the system topology and parameterization. Further information 
+            the system topology and parameterisation. Further information 
             on TESPy can be found in its 
             [online documentation](https://tespy.readthedocs.io) in English.
 
             #### Auxiliary modules:
 
-            - [Streamlit](https://docs.streamlit.io) (Graphische Oberfläche)
-            - [NumPy](https://numpy.org) (Datenverarbeitung)
-            - [pandas](https://pandas.pydata.org) (Datenverarbeitung)
+            - [Streamlit](https://docs.streamlit.io) (Graphical User Interface)
+            - [NumPy](https://numpy.org) (Data processing)
+            - [pandas](https://pandas.pydata.org) (Data processing)
             - [SciPy](https://scipy.org/) (Interpolation)
             - [scikit-learn](https://scikit-learn.org) (Regression)
-            - [Matplotlib](https://matplotlib.org) (Datenvisualisierung)
-            - [FluProDia](https://fluprodia.readthedocs.io) (Datenvisualisierung)
-            - [CoolProp](http://www.coolprop.org) (Stoffdaten)
+            - [Matplotlib](https://matplotlib.org) (Data visualisation)
+            - [FluProDia](https://fluprodia.readthedocs.io) (Data visualisation)
+            - [CoolProp](http://www.coolprop.org) (Refrigerant Data)
             """
         )
 
@@ -815,6 +817,9 @@ if mode == 'Start':
             """
             #### Software license
             MIT License
+            Copyright © 2025 Rainer Gaier
+            Adapted for English users and modified and to expose it as an MCP service
+
 
             Copyright © 2023 Jonas Freißmann and Malte Fritz
 
@@ -889,23 +894,50 @@ if mode == 'Configuration':
                 """
                 #### Instructions
 
-                You are on theConfiguration interface to simulate a heat pump. 
-                In addition to the dimensioning of the pmp and selecting the refrigerant 
-                to be used, various central parameters of the cycle process must be specified 
-                on the sidebar on the left. 
+                You are at the Configuration interface to simulate a heat pump.
+                In addition to the dimensioning of the pump and selecting the refrigerant
+                to be used, various central parameters of the cycle process must be specified
+                on the sidebar on the left.
 
-                These include, for example, the temperatures of the heat source and sink, and 
-                the associated network pressures. In addition, an internal heat exchanger 
-                can optionally be added. The resulting superheat of the evaporated refrigerant 
+                These include, for example, the temperatures of the heat source and sink, and
+                the associated network pressures. In addition, an internal heat exchanger
+                can optionally be added. The resulting superheat of the evaporated refrigerant
                 must also be specified. Once the simulation Configuration has been successfully
-                completed, the generated results are graphically processed and quantified in state diagrams. 
+                completed, the generated results are graphically processed and quantified in state diagrams.
 
                 The central variables such as the coefficient of performance (COP) and the
                 relevant heat flows and power are tabulated. In addition, the thermodynamic state
                 variables in all process steps are listed in tabular form. After the simulation
                 is completed, a button appears, offering optional partial load settings. This can also
-                be done via the dropdown menu in the sidebar. Information on how to carry out the 
+                be done via the dropdown menu in the sidebar. Information on how to carry out the
                 partial load simulations can be found on the home page of this interface.
+                """
+            )
+            st.info(
+                """
+                #### Saving & Sharing Reports
+
+                After running a simulation, you can save your results to the cloud and generate
+                a shareable report. Click the **Save Report** button in the results section to:
+
+                - **Store your simulation data** securely in the cloud
+                - **Generate a unique report URL** that you can share with colleagues
+                - **View a printable HTML report** with all results, diagrams, and analysis
+
+                **Report Contents:**
+                - Configuration results (COP, heat output, power input)
+                - Topology diagram showing the heat pump schematic
+                - P-h and T-s state diagrams
+                - Complete state variables table
+                - Exergy analysis with Sankey diagram
+                - Economic evaluation (if configured)
+                - Input parameters summary
+
+                **Important Notes:**
+                - Reports are stored for **7 days** and then automatically expire
+                - Each report has a unique URL that can be bookmarked or shared
+                - Reports can be printed directly from the browser (Ctrl+P / Cmd+P)
+                - The report URL appears in the "View Report" section after saving
                 """
             )
 
