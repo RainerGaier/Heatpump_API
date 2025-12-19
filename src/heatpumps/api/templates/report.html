@@ -253,22 +253,42 @@
         <span class="expander-icon">▼</span>
     </div>
     <div class="expander-content">
+        {# Get currency settings - default to EUR if not specified #}
+        {% set currency_symbol = report_data.economic_evaluation.currency_symbol | default('€') %}
+        {% set currency_code = report_data.economic_evaluation.currency_code | default('EUR') %}
+        {% set exchange_rate = report_data.economic_evaluation.exchange_rate | default(1.0) %}
+
         {% if report_data.economic_evaluation %}
         <div class="two-column-grid" style="margin-bottom: 2rem;">
-            {% if report_data.economic_evaluation.total_cost_eur is not none %}
+            {# Use converted costs if available, otherwise fall back to EUR values #}
+            {% if report_data.economic_evaluation.cost_total is not none %}
             <div class="metric-card">
                 <div class="metric-label">Total Investment Cost</div>
                 <div class="metric-value" style="font-size: 2rem;">
-                    {{ "{:,.2f}".format(report_data.economic_evaluation.total_cost_eur) }} €
+                    {{ currency_symbol }}{{ "{:,.0f}".format(report_data.economic_evaluation.cost_total) }}
+                </div>
+            </div>
+            {% elif report_data.economic_evaluation.total_cost_eur is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Total Investment Cost</div>
+                <div class="metric-value" style="font-size: 2rem;">
+                    {{ currency_symbol }}{{ "{:,.0f}".format(report_data.economic_evaluation.total_cost_eur * exchange_rate) }}
                 </div>
             </div>
             {% endif %}
 
-            {% if report_data.economic_evaluation.specific_cost_eur_per_mw is not none %}
+            {% if report_data.economic_evaluation.cost_specific is not none %}
             <div class="metric-card">
                 <div class="metric-label">Specific Investment Cost</div>
                 <div class="metric-value" style="font-size: 2rem;">
-                    {{ "{:,.2f}".format(report_data.economic_evaluation.specific_cost_eur_per_mw) }} €/kW
+                    {{ currency_symbol }}{{ "{:,.0f}".format(report_data.economic_evaluation.cost_specific) }}/MW
+                </div>
+            </div>
+            {% elif report_data.economic_evaluation.specific_cost_eur_per_mw is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Specific Investment Cost</div>
+                <div class="metric-value" style="font-size: 2rem;">
+                    {{ currency_symbol }}{{ "{:,.0f}".format(report_data.economic_evaluation.specific_cost_eur_per_mw * exchange_rate) }}/MW
                 </div>
             </div>
             {% endif %}
@@ -281,19 +301,26 @@
             <thead>
                 <tr>
                     <th>Component</th>
-                    <th>Cost (€)</th>
+                    <th>Cost ({{ currency_symbol }})</th>
                 </tr>
             </thead>
             <tbody>
                 {% for component, cost in report_data.economic_evaluation.component_costs.items() %}
                 <tr>
                     <td>{{ component }}</td>
-                    <td>{{ "{:,.2f}".format(cost) if cost is not none else 'N/A' }}</td>
+                    <td>{{ "{:,.0f}".format(cost * exchange_rate) if cost is not none else 'N/A' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
         {% endif %}
+
+        {% if currency_code != 'EUR' %}
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #888;">
+            Costs converted from EUR at rate: 1 EUR = {{ "%.4f"|format(exchange_rate) }} {{ currency_code }}
+        </p>
+        {% endif %}
+
         <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">Methodology for the calculation of the costs analogous to <a href="https://doi.org/10.1016/j.enconman.2020.113488" target="_blank">Kosmadakis et al. (2020)</a>, based on <a href="https://www.wiley.com/en-us/Thermal+Design+and+Optimization-p-9780471584674" target="_blank">Bejan et al. (1995)</a>.</p>
     </div>
 </div>

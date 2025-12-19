@@ -18,11 +18,21 @@ try:
     import heatpumps.variables as var
     from heatpumps.simulation import run_design, run_partload
     from heatpumps.streamlit_helpers import extract_report_data
+    from heatpumps.currency_utils import (
+        get_currency_list, get_currency_options, get_currency_symbol,
+        get_default_currency, fetch_exchange_rate, convert_from_eur,
+        format_currency
+    )
 except ImportError:
     # Fallback for direct script execution
     import variables as var
     from simulation import run_design, run_partload
     from streamlit_helpers import extract_report_data
+    from currency_utils import (
+        get_currency_list, get_currency_options, get_currency_symbol,
+        get_default_currency, fetch_exchange_rate, convert_from_eur,
+        format_currency
+    )
 
 
 def debug_refrigerant_state(mode="None"):
@@ -550,6 +560,50 @@ with st.sidebar: # Logo Here RG
                 options=sorted(list(cepci.keys()), reverse=True),
                 key="current_year",
             )
+
+            # Currency selection
+            st.markdown("##### Currency Settings")
+            currencies = get_currency_list()
+            currency_codes = [c['code'] for c in currencies]
+            default_idx = currency_codes.index(get_default_currency()) if get_default_currency() in currency_codes else 0
+
+            selected_currency = st.selectbox(
+                "Display Currency",
+                options=currency_codes,
+                index=default_idx,
+                format_func=lambda x: f"{x} ({get_currency_symbol(x)}) - {next((c['name'] for c in currencies if c['code'] == x), x)}",
+                key="selected_currency",
+                help="All costs are calculated in EUR and converted to your selected currency"
+            )
+
+            # Fetch and display exchange rate
+            exchange_rate, rate_date, is_live = fetch_exchange_rate(selected_currency)
+
+            if selected_currency == 'EUR':
+                st.info("Base currency - no conversion needed")
+                ss.exchange_rate = 1.0
+                ss.currency_code = 'EUR'
+                ss.currency_symbol = '€'
+            else:
+                rate_status = "Live rate" if is_live else "Fallback rate"
+                st.caption(f"{rate_status} ({rate_date}): 1 EUR = {exchange_rate:.4f} {selected_currency}")
+
+                # Allow manual override
+                custom_rate = st.number_input(
+                    f"Exchange Rate (EUR to {selected_currency})",
+                    min_value=0.0001,
+                    max_value=10000.0,
+                    value=float(exchange_rate),
+                    step=0.0001,
+                    format="%.4f",
+                    key="custom_exchange_rate",
+                    help="Modify to use a custom exchange rate"
+                )
+                ss.exchange_rate = custom_rate
+                ss.currency_code = selected_currency
+                ss.currency_symbol = get_currency_symbol(selected_currency)
+
+            st.markdown("##### Heat Transfer Coefficients")
 
             costcalcparams["k_evap"] = st.slider(
                 "Heat transfer coefficient (evaporation)",
@@ -1219,19 +1273,38 @@ if mode == 'Configuration':
                     ref_year='2013', **costcalcparams
                     )
 
+                # Get currency settings from session state
+                curr_symbol = ss.get('currency_symbol', '€')
+                curr_code = ss.get('currency_code', 'EUR')
+                exch_rate = ss.get('exchange_rate', 1.0)
+
                 col1, col2 = st.columns(2)
-                invest_total = ss.hp.cost_total
-                col1.metric("Total investment costs", f"{invest_total:,.0f} €")
-                inv_sepc = (
+                # Convert from EUR to selected currency
+                invest_total_eur = ss.hp.cost_total
+                invest_total = convert_from_eur(invest_total_eur, curr_code, exch_rate)
+                col1.metric("Total investment costs", f"{curr_symbol}{invest_total:,.0f}")
+                inv_spec = (
                     invest_total
                     / abs(ss.hp.params["cons"]["Q"]/1e6)
                     )
-                col2.metric("specific investment costs", f"{inv_sepc:,.0f} €/MW")
+                col2.metric("Specific investment costs", f"{curr_symbol}{inv_spec:,.0f}/MW")
+
+                # Convert component costs to selected currency and format with thousands separators
                 costdata = pd.DataFrame({
-                    k: [round(v, 2)]
+                    k: [f"{convert_from_eur(v, curr_code, exch_rate):,.2f}"]
                     for k, v in ss.hp.cost.items()
                     })
                 st.dataframe(costdata, use_container_width=True, hide_index=True)
+
+                # Store converted costs in session state for report
+                ss.cost_currency = curr_code
+                ss.cost_symbol = curr_symbol
+                ss.cost_exchange_rate = exch_rate
+                ss.cost_total_converted = invest_total
+                ss.cost_specific_converted = inv_spec
+
+                if curr_code != 'EUR':
+                    st.caption(f"Costs converted from EUR at rate: 1 EUR = {exch_rate:.4f} {curr_code}")
 
                 st.write(""" Methodology for the calculation of the costs analogous to [Kosmadakis et al. (2020)] (https://doi.org/10.1016/j.enconman.2020.113488), based on [Bejan et al.(1995)] (https://www.wiley.com/en-us/thermal+Design+And+optimization-P-9780471584674).""")
 
@@ -1269,14 +1342,17 @@ if mode == 'Configuration':
                     'group', axis=1
                     )
                 exergy_component_result.dropna(subset=['E_F'], inplace=True)
+
+                # Format large values with thousands separators
                 for col in ['E_F', 'E_P', 'E_D']:
-                    exergy_component_result[col] = (
-                        exergy_component_result[col].round(2)
-                        )
+                    exergy_component_result[col] = exergy_component_result[col].apply(
+                        lambda x: f"{x:,.2f}" if pd.notna(x) else '-'
+                    )
                 for col in ['epsilon', 'y_Dk', 'y*_Dk']:
-                    exergy_component_result[col] = (
-                        exergy_component_result[col].round(4)
-                        )
+                    exergy_component_result[col] = exergy_component_result[col].apply(
+                        lambda x: f"{x:.4f}" if pd.notna(x) else '-'
+                    )
+
                 exergy_component_result.rename(
                     columns={
                         'E_F': 'E_F in W',
@@ -1284,9 +1360,7 @@ if mode == 'Configuration':
                         'E_D': 'E_D in W',
                     },
                     inplace=True)
-                st.dataframe(
-                    data=exergy_component_result, use_container_width=True
-                    )
+                st.dataframe(data=exergy_component_result, use_container_width=True)
 
                 col6, _, col7 = st.columns([0.495, 0.01, 0.495])
                 with col6:
@@ -1359,7 +1433,7 @@ if mode == 'Configuration':
                         else:
                             model_key_topology = model_key
 
-                        # Prepare metadata
+                        # Prepare metadata including currency info
                         metadata = {
                             "report_id": report_id,
                             "created_at": datetime.utcnow().isoformat() + "Z",
@@ -1367,8 +1441,20 @@ if mode == 'Configuration':
                             "model_name": model_key_topology,  # Model key for SVG lookup (e.g., 'ic', 'ihx')
                             "model_display_name": ss.hp.params.get('setup', {}).get('name', 'Heat Pump Model'),
                             "topology": ss.hp.params.get('setup', {}).get('type', 'Unknown'),
-                            "refrigerant": ss.hp.params.get('setup', {}).get('refrig', 'Unknown')
+                            "refrigerant": ss.hp.params.get('setup', {}).get('refrig', 'Unknown'),
+                            "currency_code": ss.get('cost_currency', 'EUR'),
+                            "currency_symbol": ss.get('cost_symbol', '€'),
+                            "exchange_rate": ss.get('cost_exchange_rate', 1.0)
                         }
+
+                        # Add currency-converted costs to report data
+                        if 'economic_evaluation' not in report_data:
+                            report_data['economic_evaluation'] = {}
+                        report_data['economic_evaluation']['currency_code'] = ss.get('cost_currency', 'EUR')
+                        report_data['economic_evaluation']['currency_symbol'] = ss.get('cost_symbol', '€')
+                        report_data['economic_evaluation']['exchange_rate'] = ss.get('cost_exchange_rate', 1.0)
+                        report_data['economic_evaluation']['cost_total'] = ss.get('cost_total_converted', 0)
+                        report_data['economic_evaluation']['cost_specific'] = ss.get('cost_specific_converted', 0)
 
                         # Call API to save report
                         with st.spinner('Uploading to cloud storage...'):
