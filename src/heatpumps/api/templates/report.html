@@ -41,6 +41,226 @@
 </section>
 {% endif %}
 
+<!-- Analysis Data - For MCP-generated reports with rich analysis -->
+{% if report_data.analysis_data %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>Analysis Results</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% set ad = report_data.analysis_data %}
+
+        {# Scenario Description #}
+        {% if ad.get('scenario') or ad.get('topology_recommendation') or ad.get('refrigerant_recommendation') %}
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
+            {% if ad.get('scenario') %}
+            <h3 style="margin-bottom: 0.5rem;">{{ ad.get('scenario') }}</h3>
+            {% endif %}
+            {% if ad.get('topology_recommendation') %}
+            <p style="margin-bottom: 0.25rem;"><strong>Topology:</strong> {{ ad.get('topology_recommendation') }}</p>
+            {% endif %}
+            {% if ad.get('refrigerant_recommendation') %}
+            <p><strong>Refrigerant:</strong> {{ ad.get('refrigerant_recommendation') }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# Performance Metrics Grid #}
+        <h3 style="margin-bottom: 1rem;">Performance Metrics</h3>
+        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+            {% if ad.get('cooling_capacity_kw') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Cooling Capacity</div>
+                <div class="metric-value">{{ "{:,.0f}".format(ad.get('cooling_capacity_kw')) }} kW</div>
+            </div>
+            {% endif %}
+
+            {% if ad.get('cop_average') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Average COP</div>
+                <div class="metric-value">{{ "%.2f"|format(ad.get('cop_average')) }}</div>
+            </div>
+            {% elif ad.get('cop_summer') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">COP (Summer)</div>
+                <div class="metric-value">{{ "%.2f"|format(ad.get('cop_summer')) }}</div>
+            </div>
+            {% endif %}
+
+            {% if ad.get('pue_annual_average') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Annual PUE</div>
+                <div class="metric-value">{{ "%.2f"|format(ad.get('pue_annual_average')) }}</div>
+            </div>
+            {% endif %}
+
+            {% if ad.get('annual_electricity_mwh') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Annual Electricity</div>
+                <div class="metric-value">{{ "{:,.0f}".format(ad.get('annual_electricity_mwh')) }} MWh</div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Operating Conditions Table #}
+        {% if ad.get('dc_water_inlet_temp_c') is not none or ad.get('wetland_temp_summer_c') is not none %}
+        <h3 style="margin-bottom: 0.5rem;">Operating Conditions</h3>
+        <table class="data-table" style="margin-bottom: 1.5rem;">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Summer</th>
+                    <th>Winter</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if ad.get('dc_water_inlet_temp_c') is not none %}
+                <tr>
+                    <td>Data Centre Water Inlet</td>
+                    <td colspan="2">{{ ad.get('dc_water_inlet_temp_c') }}°C</td>
+                </tr>
+                {% endif %}
+                {% if ad.get('dc_water_outlet_temp_c') is not none %}
+                <tr>
+                    <td>Data Centre Water Outlet</td>
+                    <td colspan="2">{{ ad.get('dc_water_outlet_temp_c') }}°C</td>
+                </tr>
+                {% endif %}
+                {% if ad.get('wetland_temp_summer_c') is not none or ad.get('wetland_temp_winter_c') is not none %}
+                <tr>
+                    <td>Wetland Temperature</td>
+                    <td>{{ ad.get('wetland_temp_summer_c') }}°C</td>
+                    <td>{{ ad.get('wetland_temp_winter_c') }}°C</td>
+                </tr>
+                {% endif %}
+                {% if ad.get('condenser_outlet_summer_c') is not none or ad.get('condenser_outlet_winter_c') is not none %}
+                <tr>
+                    <td>Condenser Outlet</td>
+                    <td>{{ ad.get('condenser_outlet_summer_c') }}°C</td>
+                    <td>{{ ad.get('condenser_outlet_winter_c') }}°C</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        {# Seasonal Performance Table #}
+        {% if ad.get('cop_summer') is not none or ad.get('power_input_summer_kw') is not none %}
+        <h3 style="margin-bottom: 0.5rem;">Seasonal Performance</h3>
+        <table class="data-table" style="margin-bottom: 1.5rem;">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Summer</th>
+                    <th>Winter</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if ad.get('cop_summer') is not none or ad.get('cop_winter') is not none %}
+                <tr>
+                    <td>COP</td>
+                    <td>{{ "%.2f"|format(ad.get('cop_summer')) if ad.get('cop_summer') is not none else 'N/A' }}</td>
+                    <td>{{ "%.2f"|format(ad.get('cop_winter')) if ad.get('cop_winter') is not none else 'N/A' }}</td>
+                </tr>
+                {% endif %}
+                {% if ad.get('power_input_summer_kw') is not none or ad.get('power_input_winter_kw') is not none %}
+                <tr>
+                    <td>Power Input (kW)</td>
+                    <td>{{ "{:,.1f}".format(ad.get('power_input_summer_kw')) if ad.get('power_input_summer_kw') is not none else 'N/A' }}</td>
+                    <td>{{ "{:,.1f}".format(ad.get('power_input_winter_kw')) if ad.get('power_input_winter_kw') is not none else 'N/A' }}</td>
+                </tr>
+                {% endif %}
+                {% if ad.get('heat_rejected_summer_kw') is not none or ad.get('heat_rejected_winter_kw') is not none %}
+                <tr>
+                    <td>Heat Rejected (kW)</td>
+                    <td>{{ "{:,.1f}".format(ad.get('heat_rejected_summer_kw')) if ad.get('heat_rejected_summer_kw') is not none else 'N/A' }}</td>
+                    <td>{{ "{:,.1f}".format(ad.get('heat_rejected_winter_kw')) if ad.get('heat_rejected_winter_kw') is not none else 'N/A' }}</td>
+                </tr>
+                {% endif %}
+                {% if ad.get('pue_chiller') is not none or ad.get('pue_free_cooling') is not none %}
+                <tr>
+                    <td>PUE</td>
+                    <td>{{ "%.2f"|format(ad.get('pue_chiller')) if ad.get('pue_chiller') is not none else 'N/A' }} (chiller)</td>
+                    <td>{{ "%.2f"|format(ad.get('pue_free_cooling')) if ad.get('pue_free_cooling') is not none else 'N/A' }} (free cooling)</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        {# Operating Hours #}
+        {% if ad.get('free_cooling_hours') is not none or ad.get('chiller_hours') is not none %}
+        <h3 style="margin-bottom: 0.5rem;">Annual Operating Hours</h3>
+        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+            {% if ad.get('free_cooling_hours') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Free Cooling</div>
+                <div class="metric-value">{{ "{:,}".format(ad.get('free_cooling_hours')) }} hrs</div>
+            </div>
+            {% endif %}
+            {% if ad.get('chiller_hours') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Chiller Operation</div>
+                <div class="metric-value">{{ "{:,}".format(ad.get('chiller_hours')) }} hrs</div>
+            </div>
+            {% endif %}
+            {% if ad.get('backup_hours') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Backup</div>
+                <div class="metric-value">{{ "{:,}".format(ad.get('backup_hours')) }} hrs</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# Heat Recovery #}
+        {% if ad.get('heat_recovery_potential_kw') is not none or ad.get('heat_recovery_annual_mwh') is not none %}
+        <h3 style="margin-bottom: 0.5rem;">Heat Recovery Potential</h3>
+        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+            {% if ad.get('heat_recovery_potential_kw') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Capacity</div>
+                <div class="metric-value">{{ "{:,.0f}".format(ad.get('heat_recovery_potential_kw')) }} kW</div>
+            </div>
+            {% endif %}
+            {% if ad.get('heat_recovery_annual_mwh') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Annual Energy</div>
+                <div class="metric-value">{{ "{:,.0f}".format(ad.get('heat_recovery_annual_mwh')) }} MWh</div>
+            </div>
+            {% endif %}
+            {% if ad.get('heat_recovery_revenue_gbp') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Annual Revenue</div>
+                <div class="metric-value">£{{ "{:,.0f}".format(ad.get('heat_recovery_revenue_gbp')) }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# Annual Summary #}
+        {% if ad.get('annual_cooling_mwh') is not none %}
+        <h3 style="margin-bottom: 0.5rem;">Annual Summary</h3>
+        <div class="metrics-grid">
+            {% if ad.get('annual_cooling_mwh') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Annual Cooling</div>
+                <div class="metric-value">{{ "{:,.0f}".format(ad.get('annual_cooling_mwh')) }} MWh</div>
+            </div>
+            {% endif %}
+            {% if ad.get('annual_electricity_mwh') is not none %}
+            <div class="metric-card">
+                <div class="metric-label">Electricity Consumption</div>
+                <div class="metric-value">{{ "{:,.0f}".format(ad.get('annual_electricity_mwh')) }} MWh</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Input Parameters - Expander (moved to top) -->
 {% if report_data.parameters %}
 <div class="expander">

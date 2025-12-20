@@ -136,3 +136,19 @@ src/heatpumps/models/stable/*
 src/heatpumps/models/output/*
 src/heatpumps/models/input/diagrams/
 Heatpump_Test/
+
+# MCP Server build artifacts (PyInstaller)
+mcp/dist/
+mcp/build/
+mcp/*.spec
+mcp/src/*.egg-info/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

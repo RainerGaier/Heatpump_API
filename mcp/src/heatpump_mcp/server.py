@@ -26,9 +26,13 @@ from mcp.types import Tool, TextContent
 import json
 from datetime import datetime, timezone
 import uuid
+import os
 
-# Your deployed API endpoint
-API_BASE_URL = "https://heatpump-api-382432690682.europe-west1.run.app"
+# API endpoint - can be overridden via environment variable
+API_BASE_URL = os.environ.get(
+    "HEATPUMP_API_URL",
+    "https://heatpump-api-382432690682.europe-west1.run.app"
+)
 
 # Initialize MCP server
 app = Server("heatpump-simulator")
@@ -671,11 +675,16 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
-async def main():
+async def run_server():
     """Run the MCP server."""
     async with stdio_server() as (read_stream, write_stream):
         await app.run(read_stream, write_stream, app.create_initialization_options())
 
 
+def main():
+    """Entry point for the MCP server."""
+    asyncio.run(run_server())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

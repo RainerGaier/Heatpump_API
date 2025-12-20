@@ -1,130 +1,163 @@
-# Heat Pump MCP Server - Setup Instructions
+# Heat Pump MCP Server
 
-## Quick Start (10 Minutes)
+MCP (Model Context Protocol) server that enables **Claude Desktop** to run heat pump simulations via natural language.
 
-### Step 1: Create the MCP folder
-```bash
-cd C:\Users\gaierr\Energy_Projects\projects\heatpumps
-mkdir mcp
-cd mcp
-```
+## What This Does
 
-### Step 2: Copy files into the mcp folder
-Copy these 3 files into `C:\Users\gaierr\Energy_Projects\projects\heatpumps\mcp\`:
-- ✅ `heatpump_server.py`
-- ✅ `requirements-mcp.txt`
-- ✅ `MCP_README.md` (this file)
+Ask Claude questions like:
+- *"What heat pump should I use for a 10 MW data centre?"*
+- *"Simulate a 5 MW IHX heat pump with R717 ammonia refrigerant"*
+- *"Compare cooling options for incoming water at 40°C"*
 
-### Step 3: Install dependencies
-```bash
-# From the mcp folder
-pip install -r requirements-mcp.txt
-```
-
-### Step 4: Test the server
-```bash
-python heatpump_server.py
-```
-
-If it starts without errors, press `Ctrl+C` to stop it. That's it - the server works!
+Claude will run real thermodynamic simulations and return actual performance data (COP, power consumption, heat recovery potential).
 
 ---
 
-## Step 5: Configure Claude Desktop
+## Installation Options
 
-### Find your config file:
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+Choose the option that best fits your needs:
 
-**Quick way to find it:**
-1. Press `Win + R`
-2. Type: `%APPDATA%\Claude`
-3. Open `claude_desktop_config.json` in Notepad
+| Option | Best For | Prerequisites |
+|--------|----------|---------------|
+| **A: pip install** | Developers | Python 3.10+ |
+| **B: One-Click Installer** | Non-developers with Python | Python 3.10+ |
+| **C: Standalone .exe** | Anyone (no Python needed) | None |
 
-### Edit the config file:
+---
+
+### Option A: For Developers (pip install)
+
+```bash
+# Navigate to the mcp folder
+cd heatpumps-main/mcp
+
+# Install as editable package
+pip install -e .
+
+# Verify installation
+heatpump-mcp --help
+```
+
+**Configure Claude Desktop:**
+
+Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "heatpump-simulator": {
-      "command": "python",
-      "args": [
-        "C:\\Users\\gaierr\\Energy_Projects\\projects\\heatpumps\\mcp\\heatpump_server.py"
-      ]
+      "command": "heatpump-mcp"
     }
   }
 }
 ```
 
-**IMPORTANT:** Use double backslashes `\\` in the path!
-
-### Step 6: Restart Claude Desktop
-
-1. Close Claude Desktop completely
-2. Open it again
-3. Look for the 🔌 icon (MCP servers connected)
+Restart Claude Desktop.
 
 ---
 
-## Step 7: Test It!
+### Option B: For Non-Developers (One-Click Installer)
 
-Ask Claude:
-```
-"What heat pump topology should I use for a 10 MW data centre with wetland cooling?"
-```
+**Prerequisites:** Python 3.10+ installed
 
-Claude should:
-1. Call your MCP server
-2. Run a real simulation via your API
-3. Return actual performance data (COP, power, heat recovery, etc.)
+1. Navigate to the `mcp` folder
+2. Double-click `install-windows.bat`
+3. Follow the prompts
+4. Restart Claude Desktop
 
----
-
-## Troubleshooting
-
-### Server won't start?
-```bash
-# Check Python version (needs 3.10+)
-python --version
-
-# Reinstall dependencies
-pip install -r requirements-mcp.txt --force-reinstall
-```
-
-### Claude doesn't see the server?
-1. Check config file path is correct (double backslashes!)
-2. Restart Claude Desktop
-3. Look for errors in: `%APPDATA%\Claude\logs\`
-
-### API timeout?
-- Normal for first simulation (cold start)
-- Subsequent calls should be faster
+The installer will:
+- Install required Python packages
+- Configure Claude Desktop automatically
+- Verify the installation
 
 ---
 
-## Example Questions to Try
+### Option C: Standalone Executable (No Python Required)
 
-1. "List available heat pump models"
-2. "What are the parameters for the IHX model?"
-3. "Simulate a 5 MW IHX heat pump with R134a"
-4. "Analyze cooling for a 15 MW data centre"
-5. "What's the heat recovery potential for 10 MW?"
+For users who don't have Python installed:
+
+**Step 1: Build the executable** (done once by developer)
+
+```powershell
+cd mcp
+.\build-standalone.ps1
+```
+
+This creates:
+- `dist/heatpump-mcp.exe` - Standalone executable (~30 MB)
+- `dist/install-standalone.bat` - One-click installer
+
+**Step 2: Distribute to end users**
+
+Send them:
+1. `heatpump-mcp.exe`
+2. `install-standalone.bat`
+
+**Step 3: End user installation**
+1. Download both files to a folder
+2. Double-click `install-standalone.bat`
+3. Restart Claude Desktop
 
 ---
 
-## Project Structure
+## Verifying Installation
 
+After installation and restarting Claude Desktop:
+
+1. Look for the 🔌 plug icon (MCP servers connected)
+2. Ask Claude: *"List available heat pump models"*
+3. Claude should return a list of topologies (simple, ihx, econ_closed, etc.)
+
+---
+
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_heat_pump_models` | Get available topologies |
+| `get_model_parameters` | Get default parameters for a model |
+| `simulate_design_point` | Run design simulation |
+| `analyze_datacenter_cooling` | Complete data centre analysis |
+| `save_simulation_report` | Save results to cloud storage (7-day expiry) |
+| `get_report` | Retrieve saved report by ID |
+| `list_reports` | List all saved reports |
+| `view_report_url` | Get HTML report URL |
+| `get_report_json_url` | Get JSON data URL |
+
+---
+
+## Example Conversations
+
+### Quick Sizing
 ```
-heatpumps/
-├── src/heatpumps/
-│   └── api/                 # Deployed to Cloud Run
-│
-├── mcp/                     # Local MCP server
-│   ├── heatpump_server.py  # ← Main server
-│   ├── requirements-mcp.txt
-│   └── README.md
-│
-├── Dockerfile
-└── pyproject.toml
+User: "What heat pump for a 10 MW data centre with wetland cooling?"
+
+Claude: Based on my analysis using the IHX heat pump model:
+- COP: 4.2
+- Power consumption: 2.38 MW
+- Heat recovery potential: 3.5 MW thermal
+- Annual heat recovery revenue: £1.12M at £40/MWh
+```
+
+### Detailed Simulation
+```
+User: "Simulate cooling for incoming water at 40°C, outlet at 20°C,
+       using R717 ammonia, 1 MW capacity"
+
+Claude: [Runs actual TESPy simulation]
+- Model: Simple cycle
+- COP: 14.44 (summer), 21.64 (winter)
+- Annual PUE: 1.12
+```
+
+### Save Report
+```
+User: "Save this simulation as 'Phase 1 Analysis'"
+
+Claude: Report saved successfully!
+- Report ID: abc-123-def
+- View at: https://heatpump-api.../reports/abc-123-def/view
+- Expires: 7 days
 ```
 
 ---
@@ -149,22 +182,95 @@ Claude explains results to you
 
 ---
 
-## Need Help?
+## Troubleshooting
 
-Common issues:
-- **Path errors:** Use double backslashes in Windows paths
-- **Module not found:** Run `pip install -r requirements-mcp.txt`
-- **Server won't connect:** Check Claude Desktop logs
-- **Simulation fails:** Check API is still running on Cloud Run
+### Server won't start
+```bash
+# Check Python version
+python --version  # Must be 3.10+
+
+# Reinstall dependencies
+pip install -e . --force-reinstall
+
+# Test manually
+python -m heatpump_mcp
+```
+
+### Claude doesn't see the server
+1. Check config file path uses double backslashes: `C:\\Users\\...`
+2. Restart Claude Desktop completely (check system tray)
+3. Check logs at: `%APPDATA%\Claude\logs\`
+
+### API timeout
+- First request may take 10-30 seconds (cold start)
+- Subsequent requests are faster
+
+---
+
+## Configuration
+
+The API endpoint can be overridden via environment variable:
+
+```bash
+set HEATPUMP_API_URL=https://your-custom-api.run.app
+heatpump-mcp
+```
+
+---
+
+## Uninstalling
+
+**For pip install:**
+```bash
+pip uninstall heatpump-mcp
+```
+
+**For one-click install:**
+Double-click `uninstall-windows.bat`
+
+---
+
+## Project Structure
+
+```
+mcp/
+├── pyproject.toml           # Package definition (pip install)
+├── README.md                # This file
+├── install-windows.bat      # One-click installer (requires Python)
+├── uninstall-windows.bat    # Uninstaller
+├── build-standalone.ps1     # Build standalone .exe (for distribution)
+├── requirements-mcp.txt     # Legacy requirements file
+├── heatpump_server.py       # Legacy standalone script
+└── src/
+    └── heatpump_mcp/
+        ├── __init__.py
+        ├── __main__.py
+        └── server.py        # Main server code
+```
+
+---
+
+## Links
+
+- **API Documentation:** https://heatpump-api-382432690682.europe-west1.run.app/docs
+- **Streamlit UI:** https://heatpumps-simulator.streamlit.app
+- **Full Integration Guide:** See `INTEGRATION_GUIDE.md` in parent directory
 
 ---
 
 ## Success Indicators
 
-✅ MCP server starts without errors  
-✅ Claude shows 🔌 icon when started  
-✅ Claude can list heat pump models  
-✅ Claude can run simulations  
-✅ You get real COP numbers back  
+- MCP server starts without errors
+- Claude shows 🔌 icon when started
+- Claude can list heat pump models
+- Claude can run simulations
+- You get real COP numbers back
 
-Congrats! Your MCP server is working! 🎉
+---
+
+## Support
+
+For issues or questions:
+1. Check the troubleshooting section above
+2. Review Claude Desktop logs: `%APPDATA%\Claude\logs\`
+3. Contact the development team
