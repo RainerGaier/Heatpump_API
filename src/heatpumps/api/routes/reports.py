@@ -24,7 +24,7 @@ from heatpumps.api.schemas import (
 from heatpumps.api.config import Settings, get_settings
 from heatpumps.api.services.storage import StorageService
 from heatpumps.api.services.diagrams import DiagramGenerator
-from heatpumps.api.parameter_descriptions import get_all_descriptions
+from heatpumps.api.parameter_descriptions import get_all_descriptions, get_glossary
 
 logger = logging.getLogger(__name__)
 
@@ -307,6 +307,7 @@ async def view_report_html(
             "refrigerants": refrigerants,
             "diagram_paths": diagram_paths,
             "param_descriptions": get_all_descriptions(),
+            "glossary": get_glossary(),
         }
 
         return templates.TemplateResponse("report.html", context)

@@ -86,7 +86,65 @@ PARAMETER_DESCRIPTIONS = {
     # Economic Parameters
     'cost_total': 'Total investment cost',
     'specific_cost': 'Specific investment cost per kW',
+
+    # Refrigerant Properties
+    'Typ': 'Refrigerant category and typical use',
+    'T_NBP': 'Normal boiling point - temperature at which the refrigerant boils under normal conditions',
+    'T_krit': 'Critical temperature - maximum temperature where the refrigerant can still be liquid',
+    'p_krit': 'Critical pressure - pressure where liquid and gas states merge',
+    'SK': 'Safety classification - ASHRAE 34 rating for flammability and toxicity',
+    'ODP': 'Ozone Depletion Potential - impact on the ozone layer (lower is better)',
+    'GWP': 'Global Warming Potential - global warming impact compared to CO2',
+    'GWP100': 'Global Warming Potential over 100 years',
+    'ASHRAE34': 'ASHRAE Standard 34 safety classification',
+
+    # Exergy Parameters
+    'epsilon': 'Exergetic efficiency - ratio of product exergy to fuel exergy',
+    'E_F': 'Fuel exergy - exergy supplied to the system',
+    'E_P': 'Product exergy - useful exergy output from the system',
+    'E_D': 'Exergy destruction - exergy lost due to irreversibilities',
+    'E_L': 'Exergy loss - exergy lost to the environment',
+    'y_Dk': 'Exergy destruction ratio - component exergy destruction relative to total',
+
+    # Performance Metrics
+    'COP': 'Coefficient of Performance - ratio of heat output to work input',
+    'Q_dot_ab': 'Heat output rate - thermal power delivered to heat sink',
+    'Q_dot_zu': 'Heat input rate - thermal power extracted from heat source',
+    'P_zu': 'Power input - electrical power consumed by compressor',
 }
+
+
+# Glossary terms for reports - extracted from PARAMETER_DESCRIPTIONS
+GLOSSARY_TERMS = {
+    'COP': 'Coefficient of Performance - the ratio of heat output to work input, measuring heat pump efficiency',
+    'Exergy': 'The maximum useful work obtainable from a system as it reaches equilibrium with its environment',
+    'Epsilon (ε)': 'Exergetic efficiency - the ratio of product exergy to fuel exergy, indicating thermodynamic perfection',
+    'E_F': 'Fuel Exergy - the exergy supplied to drive the heat pump (compressor work)',
+    'E_P': 'Product Exergy - the useful exergy output (heat delivered at temperature above ambient)',
+    'E_D': 'Exergy Destruction - exergy lost within components due to irreversibilities (friction, heat transfer across temperature differences)',
+    'E_L': 'Exergy Loss - exergy transferred to the environment without useful purpose',
+    'Isentropic Efficiency': 'Compressor efficiency comparing actual work to ideal (reversible) work for the same pressure ratio',
+    'Superheat': 'Temperature increase of refrigerant vapor above its saturation temperature at a given pressure',
+    'Subcooling': 'Temperature decrease of refrigerant liquid below its saturation temperature at a given pressure',
+    'TTD (Terminal Temperature Difference)': 'Temperature difference between fluids at heat exchanger inlet or outlet',
+    'Pressure Ratio': 'Ratio of discharge pressure to suction pressure across a compressor',
+    'Critical Point': 'The temperature and pressure above which distinct liquid and gas phases do not exist',
+    'ODP': 'Ozone Depletion Potential - environmental metric comparing ozone layer impact to R-11 (CFC-11 = 1.0)',
+    'GWP': 'Global Warming Potential - environmental metric comparing greenhouse effect to CO2 over 100 years',
+    'ASHRAE 34': 'Safety classification system for refrigerants (e.g., A1 = non-toxic/non-flammable, B2L = low toxicity/mildly flammable)',
+    'Sankey Diagram': 'Flow diagram showing exergy flows through the system, with widths proportional to flow magnitude',
+    'Waterfall Diagram': 'Chart showing cumulative exergy destruction from fuel to product exergy',
+}
+
+
+def get_glossary() -> dict:
+    """
+    Get glossary terms for display in reports.
+
+    Returns:
+        Dictionary of term names to descriptions
+    """
+    return GLOSSARY_TERMS.copy()
 
 
 def get_description(param_name: str) -> str:

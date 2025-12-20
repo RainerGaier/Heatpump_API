@@ -1409,6 +1409,32 @@ if mode == 'Configuration':
                     """
                 )
 
+            with st.expander("G L O S S A R Y &nbsp; O F &nbsp; T E R M S"):
+                st.markdown("""
+                Key terms and definitions used in heat pump simulation and thermodynamic analysis.
+
+                | Term | Description |
+                |------|-------------|
+                | **COP** | Coefficient of Performance - the ratio of heat output to work input, measuring heat pump efficiency |
+                | **Exergy** | The maximum useful work obtainable from a system as it reaches equilibrium with its environment |
+                | **Epsilon (ε)** | Exergetic efficiency - the ratio of product exergy to fuel exergy, indicating thermodynamic perfection |
+                | **E_F** | Fuel Exergy - the exergy supplied to drive the heat pump (compressor work) |
+                | **E_P** | Product Exergy - the useful exergy output (heat delivered at temperature above ambient) |
+                | **E_D** | Exergy Destruction - exergy lost within components due to irreversibilities |
+                | **E_L** | Exergy Loss - exergy transferred to the environment without useful purpose |
+                | **Isentropic Efficiency** | Compressor efficiency comparing actual work to ideal (reversible) work |
+                | **Superheat** | Temperature increase of refrigerant vapor above its saturation temperature |
+                | **Subcooling** | Temperature decrease of refrigerant liquid below its saturation temperature |
+                | **TTD** | Terminal Temperature Difference - temperature difference at heat exchanger inlet/outlet |
+                | **Pressure Ratio** | Ratio of discharge pressure to suction pressure across a compressor |
+                | **Critical Point** | Temperature and pressure above which distinct liquid and gas phases do not exist |
+                | **ODP** | Ozone Depletion Potential - environmental metric comparing ozone layer impact to R-11 |
+                | **GWP** | Global Warming Potential - environmental metric comparing greenhouse effect to CO2 |
+                | **ASHRAE 34** | Safety classification for refrigerants (e.g., A1 = non-toxic/non-flammable) |
+                | **Sankey Diagram** | Flow diagram showing exergy flows with widths proportional to magnitude |
+                | **Waterfall Diagram** | Chart showing cumulative exergy destruction from fuel to product |
+                """)
+
             # Save & Share Report button
             st.divider()
             col_report, col_partload = st.columns([1, 1])
@@ -1470,40 +1496,57 @@ if mode == 'Configuration':
 
                         if response.status_code == 201:
                             data = response.json()
-                            st.success("✅ Report saved successfully!")
-
-                            # Show HTML view URL as primary link
-                            st.markdown("### 🔗 View Report")
                             report_id = data['report_id']
                             view_url = f"{api_url}/api/v1/reports/{report_id}/view"
+                            data_url = data['signed_url']
 
-                            # Create columns for clickable link and copy button
-                            col_link, col_copy = st.columns([6, 1])
-                            with col_link:
-                                # Clickable hyperlink that opens in new tab
-                                st.markdown(
-                                    f'<a href="{view_url}" target="_blank" '
-                                    f'style="color: #1f77b4; text-decoration: none; font-family: monospace; font-size: 13px; word-break: break-all;">'
-                                    f'{view_url}</a>',
-                                    unsafe_allow_html=True
-                                )
-                            with col_copy:
-                                # Copy button with pyperclip-style functionality
-                                st.markdown(
-                                    f'''<button onclick="navigator.clipboard.writeText('{view_url}').then(() => alert('URL copied!'))"
-                                        style="background: #f0f2f6; border: 1px solid #ddd; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 16px;"
-                                        title="Copy URL to clipboard">📋</button>''',
-                                    unsafe_allow_html=True
-                                )
+                            # Two-column table header
+                            st.markdown("""
+                            <style>
+                            .report-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+                            .report-table th { background: #1f2937; color: white; padding: 0.75rem; text-align: center; font-weight: 600; letter-spacing: 2px; }
+                            .report-table td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+                            .report-table .success-msg { color: #059669; font-weight: 500; }
+                            .report-table .link-cell { display: flex; align-items: center; gap: 0.5rem; }
+                            .report-table a { color: #2563eb; text-decoration: none; font-family: monospace; font-size: 0.9rem; }
+                            .report-table a:hover { text-decoration: underline; }
+                            .copy-btn { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 14px; }
+                            .copy-btn:hover { background: #e5e7eb; }
+                            </style>
+                            """, unsafe_allow_html=True)
 
-                            st.info(f"📊 Click the link to open your interactive heat pump report in a new browser tab.")
+                            st.markdown(f"""
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50%;">D A T A</th>
+                                        <th style="width: 50%;">R E P O R T</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="success-msg">✅ Data extracted successfully</td>
+                                        <td class="success-msg">✅ Report saved successfully!</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="link-cell">
+                                                <a href="{data_url}" target="_blank">View Data</a>
+                                                <button class="copy-btn" onclick="navigator.clipboard.writeText('{data_url}').then(() => alert('Data URL copied!'))" title="Copy URL to clipboard">📋</button>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="link-cell">
+                                                <a href="{view_url}" target="_blank">View Report ({report_id[:8]}...)</a>
+                                                <button class="copy-btn" onclick="navigator.clipboard.writeText('{view_url}').then(() => alert('Report URL copied!'))" title="Copy URL to clipboard">📋</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            """, unsafe_allow_html=True)
 
-                            # JSON URL in expander
-                            with st.expander("📋 Advanced Options"):
-                                st.markdown("**Raw JSON Data:**")
-                                st.code(data['signed_url'], language="text")
-                                st.text(f"Report ID: {data['report_id']}")
-                                st.text(f"Storage: {data['storage_url']}")
+                            st.info("📊 Click the links to open your data or interactive heat pump report in a new browser tab.")
                         else:
                             st.error(f"❌ Failed to save report (HTTP {response.status_code})")
                             st.code(response.text)
@@ -1514,10 +1557,7 @@ if mode == 'Configuration':
 
             with col_partload:
                 st.button('Partial load Simulation', on_click=switch2partload, use_container_width=True)
-
-            st.info(
-                'To calculate the partial load, press "Partial load simulation".'
-            )
+                st.caption('To calculate the partial load, press "Partial load Simulation".')
 
 if mode == 'Partial load':
     # %% MARK: Offdesign Simulation

@@ -769,6 +769,29 @@
 </div>
 {% endif %}
 
+<!-- Glossary of Terms - Expander -->
+{% if glossary %}
+<div class="expander">
+    <div class="expander-header">
+        <span>G L O S S A R Y &nbsp; O F &nbsp; T E R M S</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+            Key terms and definitions used in heat pump simulation and thermodynamic analysis.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(450px, 1fr)); gap: 1rem;">
+            {% for term, description in glossary.items() %}
+            <div style="padding: 0.75rem; background: var(--bg-card); border-radius: 6px; border-left: 3px solid var(--primary);">
+                <dt style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">{{ term }}</dt>
+                <dd style="margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4;">{{ description }}</dd>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
