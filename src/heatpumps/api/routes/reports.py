@@ -273,13 +273,15 @@ async def view_report_html(
         try:
             # Extract data for diagram generation
             refrigerant = report_data.get("metadata", {}).get("refrigerant", "R134a")
-            state_points_data = report_data.get("state_variables", {}).get("connections", [])
+            state_variables = report_data.get("state_variables", {})
+            state_points_data = state_variables.get("connections", [])
+            point_indices = state_variables.get("index", [])  # A0, A1, B1, B2, C0, etc.
             exergy_data = report_data.get("exergy_assessment", {})
             metadata = report_data.get("metadata", {})
 
             if state_points_data and len(state_points_data) > 0:
                 logger.info(f"Generating diagrams for report {report_id}, refrigerant: {refrigerant}")
-                logger.info(f"State points count: {len(state_points_data)}")
+                logger.info(f"State points count: {len(state_points_data)}, indices: {point_indices}")
                 logger.info(f"Exergy data keys: {list(exergy_data.keys()) if exergy_data else 'None'}")
 
                 diagram_paths = diagram_generator.generate_all_diagrams(
@@ -287,13 +289,14 @@ async def view_report_html(
                     refrigerant=refrigerant,
                     state_points=state_points_data,
                     exergy_data=exergy_data,
-                    metadata=metadata
+                    metadata=metadata,
+                    point_indices=point_indices
                 )
                 logger.info(f"Generated diagrams: {diagram_paths}")
             else:
                 logger.warning(f"No state points found for report {report_id}, skipping diagram generation")
         except Exception as e:
-            logger.error(f"Failed to generate diagrams: {e}")
+            logger.error(f"Failed to generate diagrams: {e}", exc_info=True)
             # Continue without diagrams
 
         # Prepare template context

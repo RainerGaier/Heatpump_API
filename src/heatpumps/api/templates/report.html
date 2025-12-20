@@ -261,7 +261,7 @@
 </div>
 {% endif %}
 
-<!-- Input Parameters - Expander (moved to top) -->
+<!-- Input Parameters - Expander -->
 {% if report_data.parameters %}
 <div class="expander">
     <div class="expander-header">
@@ -269,36 +269,94 @@
         <span class="expander-icon">▼</span>
     </div>
     <div class="expander-content">
+        {# Group parameters by category #}
+        {% set param_groups = {
+            'Operating Conditions': ['ambient', 'T_hs_ff', 'T_cons_ff', 'Q_N'],
+            'Heat Source (B)': ['B1', 'B2', 'B3'],
+            'Consumer (C)': ['C0', 'C1', 'C2', 'C3'],
+            'Refrigerant Circuit (A)': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'],
+            'Components': ['comp', 'cond', 'eva', 'ihx', 'valve'],
+            'System Setup': ['setup', 'offdesign']
+        } %}
+
         {% for section_name, section_data in report_data.parameters.items() %}
+        {% if section_data is mapping %}
         <div style="margin-bottom: 1.5rem;">
-            <h3 style="margin-bottom: 0.5rem; text-transform: capitalize;">{{ section_name.replace('_', ' ') }}</h3>
+            <h3 style="margin-bottom: 0.5rem; text-transform: capitalize;">
+                {# Format section name nicely #}
+                {% if section_name == 'ambient' %}Ambient Conditions
+                {% elif section_name == 'setup' %}System Setup
+                {% elif section_name == 'comp' %}Compressor
+                {% elif section_name == 'cond' %}Condenser
+                {% elif section_name == 'eva' %}Evaporator
+                {% elif section_name == 'ihx' %}Internal Heat Exchanger
+                {% elif section_name == 'offdesign' %}Off-Design Configuration
+                {% elif section_name.startswith('A') %}Refrigerant Point {{ section_name }}
+                {% elif section_name.startswith('B') %}Heat Source Point {{ section_name }}
+                {% elif section_name.startswith('C') %}Consumer Point {{ section_name }}
+                {% else %}{{ section_name.replace('_', ' ') }}
+                {% endif %}
+            </h3>
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>Parameter</th>
                         <th>Value</th>
-                        <th>Description</th>
+                        <th>Unit</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for param_name, param_value in section_data.items() %}
+                    {% if param_value is not mapping and param_value is not none %}
                     <tr>
-                        <td>{{ param_name.replace('_', ' ').title() }}</td>
+                        <td>
+                            {# Format parameter names nicely #}
+                            {% if param_name == 'T' %}Temperature
+                            {% elif param_name == 'p' %}Pressure
+                            {% elif param_name == 'm' %}Mass Flow Rate
+                            {% elif param_name == 'Q' %}Heat Transfer
+                            {% elif param_name == 'eta_s' %}Isentropic Efficiency
+                            {% elif param_name == 'eta_s_char' %}Efficiency Characteristic
+                            {% elif param_name == 'pr' %}Pressure Ratio
+                            {% elif param_name == 'ttd_u' %}Upper Terminal Temp. Diff.
+                            {% elif param_name == 'ttd_l' %}Lower Terminal Temp. Diff.
+                            {% elif param_name == 'refrig' %}Refrigerant
+                            {% elif param_name == 'type' %}Model Type
+                            {% elif param_name == 'name' %}Model Name
+                            {% else %}{{ param_name.replace('_', ' ').title() }}
+                            {% endif %}
+                        </td>
                         <td>
                             {% if param_value is number %}
-                                {{ "%.5g"|format(param_value) }}
+                                {{ "%.4g"|format(param_value) }}
+                            {% elif param_value is string %}
+                                {{ param_value }}
+                            {% elif param_value == true %}
+                                Yes
+                            {% elif param_value == false %}
+                                No
                             {% else %}
                                 {{ param_value }}
                             {% endif %}
                         </td>
                         <td style="color: var(--text-secondary); font-size: 0.875rem;">
-                            {{ param_descriptions.get(param_name, '') }}
+                            {# Add units based on parameter name #}
+                            {% if param_name == 'T' %}°C
+                            {% elif param_name == 'p' %}bar
+                            {% elif param_name == 'm' %}kg/s
+                            {% elif param_name == 'Q' or param_name == 'Q_N' %}W
+                            {% elif param_name == 'eta_s' %}%
+                            {% elif param_name == 'ttd_u' or param_name == 'ttd_l' %}K
+                            {% elif param_name == 'pr' %}-
+                            {% endif %}
                         </td>
                     </tr>
+                    {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        {% endif %}
         {% endfor %}
     </div>
 </div>
@@ -395,36 +453,100 @@
         <span class="expander-icon">▼</span>
     </div>
     <div class="expander-content">
+        {# Determine which fluids are present #}
+        {% set has_refrigerant = namespace(value=false) %}
+        {% set has_water = namespace(value=false) %}
+        {% set refrigerant_name = report_data.metadata.refrigerant if report_data.metadata else 'Refrigerant' %}
+        {% for conn_data in report_data.state_variables.connections %}
+            {% if conn_data.get('R717') == 1.0 or conn_data.get('R134a') == 1.0 or conn_data.get('R1234yf') == 1.0 or conn_data.get('R290') == 1.0 %}
+                {% set has_refrigerant.value = true %}
+            {% endif %}
+            {% if conn_data.get('H2O') == 1.0 %}
+                {% set has_water.value = true %}
+            {% endif %}
+        {% endfor %}
+
         <div style="overflow-x: auto;">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Connection</th>
+                        <th>Point</th>
+                        <th>Fluid</th>
+                        <th>Phase</th>
                         <th>m (kg/s)</th>
                         <th>p (bar)</th>
-                        <th>h (kJ/kg)</th>
                         <th>T (°C)</th>
-                        <th>s (kJ/kgK)</th>
-                        <th>v (m³/kg)</th>
+                        <th>h (kJ/kg)</th>
+                        <th>s (J/kgK)</th>
                         <th>x (-)</th>
+                        <th>ΔT<sub>sh/sc</sub> (K)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for conn_data in report_data.state_variables.connections %}
-                    <tr>
-                        <td><strong>{{ report_data.state_variables.index[loop.index0] if report_data.state_variables.index else loop.index0 }}</strong></td>
-                        <td>{{ "%.5g"|format(conn_data.m) if conn_data.m is not none else '-' }}</td>
-                        <td>{{ "%.5g"|format(conn_data.p) if conn_data.p is not none else '-' }}</td>
-                        <td>{{ "%.5g"|format(conn_data.h) if conn_data.h is not none else '-' }}</td>
-                        <td>{{ "%.5g"|format(conn_data.T) if conn_data.T is not none else '-' }}</td>
-                        <td>{{ "%.5g"|format(conn_data.s) if conn_data.s is not none else '-' }}</td>
-                        <td>{{ "%.5g"|format(conn_data.v) if conn_data.v is not none else '-' }}</td>
-                        <td>{{ "%.5g"|format(conn_data.x) if conn_data.x is not none else '-' }}</td>
+                    {% set conn_id = report_data.state_variables.index[loop.index0] if report_data.state_variables.index else loop.index0 %}
+                    {# Determine fluid type #}
+                    {% set fluid_type = 'Unknown' %}
+                    {% if conn_data.get('H2O') == 1.0 %}
+                        {% set fluid_type = 'Water' %}
+                    {% elif conn_data.get(refrigerant_name) == 1.0 or conn_data.get('R717') == 1.0 or conn_data.get('R134a') == 1.0 %}
+                        {% set fluid_type = refrigerant_name %}
+                    {% endif %}
+                    {# Determine phase from x value #}
+                    {% set phase_display = '-' %}
+                    {% set phase_color = '' %}
+                    {% if conn_data.get('phase') %}
+                        {% if conn_data.phase == 'l' %}
+                            {% set phase_display = 'Liquid' %}
+                            {% set phase_color = 'color: #3b82f6;' %}
+                        {% elif conn_data.phase == 'g' %}
+                            {% set phase_display = 'Vapor' %}
+                            {% set phase_color = 'color: #ef4444;' %}
+                        {% elif conn_data.phase == 'tp' %}
+                            {% set phase_display = 'Two-Phase' %}
+                            {% set phase_color = 'color: #8b5cf6;' %}
+                        {% else %}
+                            {% set phase_display = conn_data.phase %}
+                        {% endif %}
+                    {% elif conn_data.x is not none %}
+                        {% if conn_data.x == 0 %}
+                            {% set phase_display = 'Sat. Liquid' %}
+                            {% set phase_color = 'color: #3b82f6;' %}
+                        {% elif conn_data.x == 1 %}
+                            {% set phase_display = 'Sat. Vapor' %}
+                            {% set phase_color = 'color: #ef4444;' %}
+                        {% elif conn_data.x > 0 and conn_data.x < 1 %}
+                            {% set phase_display = 'Two-Phase' %}
+                            {% set phase_color = 'color: #8b5cf6;' %}
+                        {% elif conn_data.x < 0 %}
+                            {% set phase_display = 'Subcooled' %}
+                            {% set phase_color = 'color: #0ea5e9;' %}
+                        {% elif conn_data.x > 1 %}
+                            {% set phase_display = 'Superheated' %}
+                            {% set phase_color = 'color: #f97316;' %}
+                        {% endif %}
+                    {% endif %}
+                    {# Superheat/Subcool from Td_bp #}
+                    {% set delta_t = conn_data.get('Td_bp') %}
+                    <tr style="{% if fluid_type == 'Water' %}background: rgba(59, 130, 246, 0.05);{% endif %}">
+                        <td><strong>{{ conn_id }}</strong></td>
+                        <td>{{ fluid_type }}</td>
+                        <td style="{{ phase_color }} font-weight: 500;">{{ phase_display }}</td>
+                        <td>{{ "%.3f"|format(conn_data.m) if conn_data.m is not none else '-' }}</td>
+                        <td>{{ "%.2f"|format(conn_data.p) if conn_data.p is not none else '-' }}</td>
+                        <td>{{ "%.1f"|format(conn_data.T) if conn_data.T is not none else '-' }}</td>
+                        <td>{{ "%.1f"|format(conn_data.h) if conn_data.h is not none else '-' }}</td>
+                        <td>{{ "%.1f"|format(conn_data.s) if conn_data.s is not none else '-' }}</td>
+                        <td>{{ "%.3f"|format(conn_data.x) if conn_data.x is not none and conn_data.x >= 0 and conn_data.x <= 1 else '-' }}</td>
+                        <td>{{ "%.1f"|format(delta_t) if delta_t is not none and delta_t != 0 else '-' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        <p style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);">
+            <strong>Legend:</strong> x = vapor quality (0=sat. liquid, 1=sat. vapor); ΔT<sub>sh/sc</sub> = superheat (+) or subcooling (-)
+        </p>
     </div>
 </div>
 {% endif %}
@@ -600,27 +722,38 @@
         <div class="plotly-container" id="sankeyDiagram"></div>
         {% endif %}
 
-        <!-- Component Exergy Table -->
-        {% if report_data.exergy_assessment.component_exergy %}
-        <h3 style="margin-top: 2rem; margin-bottom: 0.5rem;">Component Exergy Destruction</h3>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Component</th>
-                    <th>Ė<sub>D</sub> (W)</th>
-                    <th>y<sub>D</sub> (%)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for component, exergy_data in report_data.exergy_assessment.component_exergy.items() %}
-                <tr>
-                    <td>{{ component }}</td>
-                    <td>{{ "{:,.2f}".format(exergy_data.destruction) if exergy_data.destruction is not none else 'N/A' }}</td>
-                    <td>{{ "%.2f"|format(exergy_data.destruction_ratio) if exergy_data.destruction_ratio is not none else 'N/A' }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <!-- Component Exergy Table - reads from component_data array -->
+        {% if report_data.exergy_assessment.component_data %}
+        <h3 style="margin-top: 2rem; margin-bottom: 0.5rem;">Component Exergy Analysis</h3>
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Ė<sub>F</sub> (kW)</th>
+                        <th>Ė<sub>P</sub> (kW)</th>
+                        <th>Ė<sub>D</sub> (kW)</th>
+                        <th>ε (%)</th>
+                        <th>y<sub>D</sub> (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set component_index = report_data.exergy_assessment.component_index %}
+                    {% for comp_data in report_data.exergy_assessment.component_data %}
+                    {% if comp_data.E_D is not none and comp_data.E_D > 0 %}
+                    <tr>
+                        <td><strong>{{ component_index[loop.index0] if component_index else loop.index0 }}</strong></td>
+                        <td>{{ "{:,.1f}".format(comp_data.E_F / 1000) if comp_data.E_F is not none else '-' }}</td>
+                        <td>{{ "{:,.1f}".format(comp_data.E_P / 1000) if comp_data.E_P is not none else '-' }}</td>
+                        <td>{{ "{:,.1f}".format(comp_data.E_D / 1000) if comp_data.E_D is not none else '-' }}</td>
+                        <td>{{ "%.1f"|format(comp_data.epsilon * 100) if comp_data.epsilon is not none else '-' }}</td>
+                        <td>{{ "%.2f"|format(comp_data.y_Dk * 100) if comp_data.y_Dk is not none else '-' }}</td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% endif %}
 
         <!-- Waterfall Diagram -->

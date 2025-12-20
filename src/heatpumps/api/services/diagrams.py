@@ -43,12 +43,63 @@ class DiagramGenerator:
 
         logger.info(f"DiagramGenerator initialized with output_dir: {self.output_dir}")
 
+    def _filter_refrigerant_points(
+        self,
+        state_points: List[Dict[str, Any]],
+        refrigerant: str,
+        point_indices: Optional[List[str]] = None
+    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+        """
+        Filter state points to only include refrigerant cycle points.
+
+        The P-h and T-s diagrams should only show the refrigerant cycle,
+        not the water loops (heat source and consumer circuits).
+
+        Args:
+            state_points: All state points from the simulation
+            refrigerant: Refrigerant name (e.g., 'R717', 'R134a')
+            point_indices: Optional list of point labels (A0, A1, B1, etc.)
+
+        Returns:
+            Tuple of (filtered_points, filtered_labels)
+        """
+        filtered_points = []
+        filtered_labels = []
+
+        for i, sp in enumerate(state_points):
+            # Get the point label
+            label = point_indices[i] if point_indices and i < len(point_indices) else str(i)
+
+            # Check if this is a refrigerant point:
+            # 1. Points starting with 'A' are typically refrigerant circuit
+            # 2. Or check if H2O is not the fluid (H2O == null or 0)
+            is_refrigerant_point = False
+
+            # Check by label prefix (A = refrigerant circuit in TESPy convention)
+            if label.startswith('A'):
+                is_refrigerant_point = True
+            # Or check by fluid composition
+            elif sp.get('H2O') is None or sp.get('H2O') == 0:
+                # If the refrigerant is present
+                if sp.get(refrigerant) == 1.0:
+                    is_refrigerant_point = True
+                # Also check common refrigerants
+                elif any(sp.get(ref) == 1.0 for ref in ['R717', 'R134a', 'R1234yf', 'R290', 'R410A', 'R32']):
+                    is_refrigerant_point = True
+
+            if is_refrigerant_point:
+                filtered_points.append(sp)
+                filtered_labels.append(label)
+
+        return filtered_points, filtered_labels
+
     def generate_ph_diagram(
         self,
         report_id: str,
         refrigerant: str,
         state_points: List[Dict[str, Any]],
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        point_indices: Optional[List[str]] = None
     ) -> str:
         """
         Generate Pressure-Enthalpy (P-h) diagram for the thermodynamic cycle.
@@ -58,6 +109,7 @@ class DiagramGenerator:
             refrigerant: Refrigerant name (e.g., 'R134a', 'R1234yf')
             state_points: List of state point dictionaries with keys: p, h, T, s, connection_id
             metadata: Optional metadata for plot title (model_name, topology, etc.)
+            point_indices: Optional list of point labels from state_variables.index
 
         Returns:
             Relative path to saved diagram (e.g., 'diagrams/report_id_ph.png')
@@ -72,19 +124,28 @@ class DiagramGenerator:
 
             logger.info(f"Generating P-h diagram for report {report_id}, refrigerant: {refrigerant}")
 
+            # Filter to refrigerant-only points for the cycle diagram
+            filtered_points, filtered_labels = self._filter_refrigerant_points(
+                state_points, refrigerant, point_indices
+            )
+
+            if len(filtered_points) < 2:
+                logger.warning(f"Only {len(filtered_points)} refrigerant points found, need at least 2")
+                raise ValueError("Need at least 2 refrigerant state points for P-h diagram")
+
+            logger.info(f"Filtered to {len(filtered_points)} refrigerant points: {filtered_labels}")
+
             # Extract cycle data
             pressures = []
             enthalpies = []
             labels = []
 
-            for sp in state_points:
+            for i, sp in enumerate(filtered_points):
                 if sp.get('p') is not None and sp.get('h') is not None:
                     # TESPy uses bar and kJ/kg directly, no conversion needed
                     pressures.append(sp['p'])  # Already in bar
                     enthalpies.append(sp['h'])  # Already in kJ/kg
-                    # Use index as label if connection_id not available
-                    label = sp.get('connection_id', sp.get('id', str(len(labels))))
-                    labels.append(label)
+                    labels.append(filtered_labels[i])
 
             if len(pressures) < 2:
                 raise ValueError("Need at least 2 valid state points for P-h diagram")
@@ -159,7 +220,8 @@ class DiagramGenerator:
         report_id: str,
         refrigerant: str,
         state_points: List[Dict[str, Any]],
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        point_indices: Optional[List[str]] = None
     ) -> str:
         """
         Generate Temperature-Entropy (T-s) diagram for the thermodynamic cycle.
@@ -169,6 +231,7 @@ class DiagramGenerator:
             refrigerant: Refrigerant name (e.g., 'R134a', 'R1234yf')
             state_points: List of state point dictionaries with keys: p, h, T, s, connection_id
             metadata: Optional metadata for plot title
+            point_indices: Optional list of point labels from state_variables.index
 
         Returns:
             Relative path to saved diagram (e.g., 'diagrams/report_id_ts.png')
@@ -183,19 +246,28 @@ class DiagramGenerator:
 
             logger.info(f"Generating T-s diagram for report {report_id}, refrigerant: {refrigerant}")
 
+            # Filter to refrigerant-only points for the cycle diagram
+            filtered_points, filtered_labels = self._filter_refrigerant_points(
+                state_points, refrigerant, point_indices
+            )
+
+            if len(filtered_points) < 2:
+                logger.warning(f"Only {len(filtered_points)} refrigerant points found, need at least 2")
+                raise ValueError("Need at least 2 refrigerant state points for T-s diagram")
+
+            logger.info(f"Filtered to {len(filtered_points)} refrigerant points: {filtered_labels}")
+
             # Extract cycle data
             temperatures = []
             entropies = []
             labels = []
 
-            for sp in state_points:
+            for i, sp in enumerate(filtered_points):
                 if sp.get('T') is not None and sp.get('s') is not None:
                     # TESPy uses °C and kJ/(kg·K) directly, no conversion needed
                     temperatures.append(sp['T'])  # Already in °C
                     entropies.append(sp['s'])  # Already in kJ/(kg·K)
-                    # Use index as label if connection_id not available
-                    label = sp.get('connection_id', sp.get('id', str(len(labels))))
-                    labels.append(label)
+                    labels.append(filtered_labels[i])
 
             if len(temperatures) < 2:
                 raise ValueError("Need at least 2 valid state points for T-s diagram")
@@ -400,7 +472,8 @@ class DiagramGenerator:
         refrigerant: str,
         state_points: List[Dict[str, Any]],
         exergy_data: Dict[str, Any],
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        point_indices: Optional[List[str]] = None
     ) -> Dict[str, str]:
         """
         Generate all diagrams for a report (P-h, T-s, and Waterfall).
@@ -411,6 +484,7 @@ class DiagramGenerator:
             state_points: List of thermodynamic state points
             exergy_data: Exergy analysis results
             metadata: Optional metadata
+            point_indices: Optional list of point labels (A0, A1, B1, etc.)
 
         Returns:
             Dictionary mapping diagram type to relative path:
@@ -419,13 +493,17 @@ class DiagramGenerator:
         results = {}
 
         try:
-            results['ph'] = self.generate_ph_diagram(report_id, refrigerant, state_points, metadata)
+            results['ph'] = self.generate_ph_diagram(
+                report_id, refrigerant, state_points, metadata, point_indices
+            )
         except Exception as e:
             logger.error(f"Failed to generate P-h diagram: {e}")
             results['ph'] = None
 
         try:
-            results['ts'] = self.generate_ts_diagram(report_id, refrigerant, state_points, metadata)
+            results['ts'] = self.generate_ts_diagram(
+                report_id, refrigerant, state_points, metadata, point_indices
+            )
         except Exception as e:
             logger.error(f"Failed to generate T-s diagram: {e}")
             results['ts'] = None
