@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report_data.metadata.project_name or 'Data Centre Heat Pump Analysis' }}{% endblock %}
+
+{% block content %}
+
+{# Skill-Based Analysis Report Template - For structured Claude skill output #}
+
+{% set ad = report_data.analysis_data or {} %}
+{% set meta = report_data.metadata or {} %}
+
+<!-- Source Badge -->
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+    <span style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">
+        Skill-Based Analysis
+    </span>
+</div>
+
+<!-- PROJECT SUMMARY -->
+<div class="expander open">
+    <div class="expander-header">
+        <span>P R O J E C T &nbsp; S U M M A R Y</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% if ad.request_summary %}
+        <p style="margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--text-secondary);">
+            <strong>Request:</strong> {{ ad.request_summary }}
+        </p>
+        {% endif %}
+
+        <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">Input Parameters</h4>
+        <table class="data-table" style="max-width: 600px;">
+            <tbody>
+                {% if ad.cooling_capacity_kw %}
+                <tr>
+                    <td>Data Centre Power</td>
+                    <td style="text-align: right; font-weight: 600;">{{ "{:,.0f}".format(ad.cooling_capacity_kw|float) }} kW</td>
+                </tr>
+                {% endif %}
+                {% if ad.return_temp %}
+                <tr>
+                    <td>Return Water Temperature</td>
+                    <td style="text-align: right; font-weight: 600;">{{ ad.return_temp }}°C</td>
+                </tr>
+                {% endif %}
+                {% if ad.supply_temp %}
+                <tr>
+                    <td>Supply Water Temperature</td>
+                    <td style="text-align: right; font-weight: 600;">{{ ad.supply_temp }}°C</td>
+                </tr>
+                {% endif %}
+                {% if ad.heat_sink_type %}
+                <tr>
+                    <td>Heat Sink</td>
+                    <td style="text-align: right; font-weight: 600;">{{ ad.heat_sink_type }}</td>
+                </tr>
+                {% endif %}
+                {% if ad.return_temp and ad.supply_temp %}
+                <tr>
+                    <td>Temperature Delta</td>
+                    <td style="text-align: right; font-weight: 600;">{{ (ad.return_temp|float - ad.supply_temp|float)|round(1) }}°C</td>
+                </tr>
+                {% endif %}
+                {% if ad.wetland_summer %}
+                <tr>
+                    <td>Wetland Temp (Summer)</td>
+                    <td style="text-align: right; font-weight: 600;">{{ ad.wetland_summer }}°C</td>
+                </tr>
+                {% endif %}
+                {% if ad.wetland_winter %}
+                <tr>
+                    <td>Wetland Temp (Winter)</td>
+                    <td style="text-align: right; font-weight: 600;">{{ ad.wetland_winter }}°C</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TOPOLOGY COMPARISON -->
+{% if ad.topology_comparison %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>T O P O L O G Y &nbsp; C O M P A R I S O N</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">Models Evaluated</h4>
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Refrigerant</th>
+                        <th>Summer COP</th>
+                        <th>Winter COP</th>
+                        <th>Efficiency</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for model in ad.topology_comparison %}
+                    <tr {% if model.recommended %}style="background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, transparent 100%); font-weight: 600;"{% endif %}>
+                        <td>
+                            {{ model.name }}
+                            {% if model.recommended %}<span style="color: #22c55e; margin-left: 0.5rem;">✓</span>{% endif %}
+                        </td>
+                        <td>{{ model.refrigerant }}</td>
+                        <td>{{ "%.2f"|format(model.summer_cop|float) if model.summer_cop else '—' }}</td>
+                        <td>{{ "%.2f"|format(model.winter_cop|float) if model.winter_cop else '—' }}</td>
+                        <td>{{ "%.1f"|format(model.efficiency|float) if model.efficiency else '—' }}%</td>
+                        <td style="color: var(--text-secondary);">{{ model.notes or '' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if ad.optimal_choice %}
+        <div style="margin-top: 1.5rem; padding: 1.25rem; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border-radius: 12px; color: white;">
+            <h3 style="margin-bottom: 0.75rem; font-size: 1rem; opacity: 0.9;">Optimal Choice</h3>
+            <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem;">{{ ad.optimal_choice.model }}</div>
+            {% if ad.optimal_choice.reasons %}
+            <div style="font-size: 0.9rem; opacity: 0.95;">
+                <strong>Reasons for Selection:</strong>
+                <ol style="margin: 0.5rem 0 0 1.25rem; padding: 0;">
+                    {% for reason in ad.optimal_choice.reasons %}
+                    <li style="margin-bottom: 0.25rem;">{{ reason }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- PERFORMANCE METRICS -->
+<div class="expander open">
+    <div class="expander-header">
+        <span>P E R F O R M A N C E &nbsp; M E T R I C S</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+
+            <!-- Summer Operation -->
+            {% if ad.summer_cop %}
+            <div style="padding: 1.25rem; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border-radius: 12px; color: white;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">☀️ Summer Operation</h3>
+                <div style="display: grid; gap: 0.5rem;">
+                    {% if ad.wetland_summer %}
+                    <div style="display: flex; justify-content: space-between;"><span>Heat Sink Temp:</span><strong>{{ ad.wetland_summer }}°C</strong></div>
+                    {% endif %}
+                    <div style="display: flex; justify-content: space-between;"><span>COP:</span><strong style="font-size: 1.5rem;">{{ "%.2f"|format(ad.summer_cop|float) }}</strong></div>
+                    {% if ad.summer_power_kw %}
+                    <div style="display: flex; justify-content: space-between;"><span>Electrical Input:</span><strong>{{ "{:,.0f}".format(ad.summer_power_kw|float) }} kW</strong></div>
+                    {% endif %}
+                    {% if ad.summer_heat_rejected_kw %}
+                    <div style="display: flex; justify-content: space-between;"><span>Heat Rejected:</span><strong>{{ "{:,.0f}".format(ad.summer_heat_rejected_kw|float) }} kW</strong></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Winter Operation -->
+            {% if ad.winter_cop %}
+            <div style="padding: 1.25rem; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius: 12px; color: white;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">❄️ Winter Operation</h3>
+                <div style="display: grid; gap: 0.5rem;">
+                    {% if ad.wetland_winter %}
+                    <div style="display: flex; justify-content: space-between;"><span>Heat Sink Temp:</span><strong>{{ ad.wetland_winter }}°C</strong></div>
+                    {% endif %}
+                    <div style="display: flex; justify-content: space-between;"><span>COP:</span><strong style="font-size: 1.5rem;">{{ "%.2f"|format(ad.winter_cop|float) }}</strong></div>
+                    {% if ad.winter_power_kw %}
+                    <div style="display: flex; justify-content: space-between;"><span>Electrical Input:</span><strong>{{ "{:,.0f}".format(ad.winter_power_kw|float) }} kW</strong></div>
+                    {% endif %}
+                    {% if ad.winter_heat_rejected_kw %}
+                    <div style="display: flex; justify-content: space-between;"><span>Heat Rejected:</span><strong>{{ "{:,.0f}".format(ad.winter_heat_rejected_kw|float) }} kW</strong></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Shoulder Season (if available) -->
+            {% if ad.shoulder_cop %}
+            <div style="padding: 1.25rem; background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%); border-radius: 12px; color: white;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">🍂 Shoulder Season</h3>
+                <div style="display: grid; gap: 0.5rem;">
+                    {% if ad.shoulder_temp %}
+                    <div style="display: flex; justify-content: space-between;"><span>Heat Sink Temp:</span><strong>{{ ad.shoulder_temp }}°C</strong></div>
+                    {% endif %}
+                    <div style="display: flex; justify-content: space-between;"><span>COP:</span><strong style="font-size: 1.5rem;">{{ "%.2f"|format(ad.shoulder_cop|float) }}</strong></div>
+                    {% if ad.shoulder_power_kw %}
+                    <div style="display: flex; justify-content: space-between;"><span>Electrical Input:</span><strong>{{ "{:,.0f}".format(ad.shoulder_power_kw|float) }} kW</strong></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Estimated Annual Performance -->
+        {% if ad.blended_cop or ad.avg_power_kw or ad.pue_range %}
+        <h4 style="margin: 1.5rem 0 1rem; color: var(--text-secondary);">Estimated Annual Performance</h4>
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            {% if ad.blended_cop %}
+            <div class="metric-card">
+                <div class="metric-label">Blended COP</div>
+                <div class="metric-value" style="font-size: 2rem;">{{ ad.blended_cop }}</div>
+            </div>
+            {% endif %}
+            {% if ad.avg_power_kw %}
+            <div class="metric-card">
+                <div class="metric-label">Avg Power Input</div>
+                <div class="metric-value" style="font-size: 2rem;">{{ "{:,.0f}".format(ad.avg_power_kw|float) }} kW</div>
+            </div>
+            {% endif %}
+            {% if ad.pue_range %}
+            <div class="metric-card">
+                <div class="metric-label">PUE Contribution</div>
+                <div class="metric-value" style="font-size: 2rem;">{{ ad.pue_range }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- HEAT RECOVERY POTENTIAL -->
+{% if ad.heat_recovery %}
+{% set hr = ad.heat_recovery %}
+<div class="expander">
+    <div class="expander-header">
+        <span>H E A T &nbsp; R E C O V E R Y &nbsp; P O T E N T I A L</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            {% if hr.recoverable_capacity_mw %}
+            <div class="metric-card">
+                <div class="metric-label">Recoverable Capacity</div>
+                <div class="metric-value">{{ hr.recoverable_capacity_mw }} MW</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">thermal</div>
+            </div>
+            {% endif %}
+            {% if hr.annual_energy_mwh %}
+            <div class="metric-card">
+                <div class="metric-label">Annual Energy</div>
+                <div class="metric-value">{{ "{:,.0f}".format(hr.annual_energy_mwh|float) }} MWh</div>
+            </div>
+            {% endif %}
+            {% if hr.revenue_potential_gbp %}
+            <div class="metric-card" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white;">
+                <div class="metric-label" style="color: rgba(255,255,255,0.9);">Revenue Potential</div>
+                <div class="metric-value" style="color: white;">£{{ "{:,.0f}".format(hr.revenue_potential_gbp|float) }}</div>
+                <div style="font-size: 0.8rem; opacity: 0.8;">per year @ £{{ hr.price_per_mwh|default(40) }}/MWh</div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if hr.potential_applications %}
+        <div style="margin-top: 1.5rem;">
+            <h4 style="margin-bottom: 0.75rem; color: var(--text-secondary);">Potential Applications</h4>
+            <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-primary);">
+                {% for app in hr.potential_applications %}
+                <li style="margin-bottom: 0.25rem;">{{ app }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- RECOMMENDED STRATEGY -->
+{% if ad.strategy %}
+{% set strat = ad.strategy %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>R E C O M M E N D E D &nbsp; S T R A T E G Y</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% if strat.approach %}
+        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Operational Approach: {{ strat.approach }}</h3>
+        {% endif %}
+
+        {% if strat.tiers %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
+            {% for tier in strat.tiers %}
+            <div style="padding: 1.25rem; border: 2px solid {{ tier.color|default('#3b82f6') }}; border-radius: 12px;">
+                <h4 style="color: {{ tier.color|default('#3b82f6') }}; margin-bottom: 0.75rem;">{{ tier.name }}</h4>
+                {% if tier.condition %}
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">{{ tier.condition }}</p>
+                {% endif %}
+                {% if tier.percent_of_year %}
+                <div class="metric-value" style="font-size: 2rem; color: {{ tier.color|default('#3b82f6') }};">{{ tier.percent_of_year }}%</div>
+                <p style="color: var(--text-secondary); font-size: 0.85rem;">of year</p>
+                {% endif %}
+                {% if tier.pue %}
+                <p style="margin-top: 0.5rem;">PUE: <strong>{{ tier.pue }}</strong></p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if strat.notes %}
+        <div style="margin-top: 1.5rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0ea5e9;">
+            <p style="margin: 0; color: var(--text-primary); font-size: 0.95rem;">{{ strat.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- KEY RECOMMENDATIONS -->
+{% if ad.recommendations %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>K E Y &nbsp; R E C O M M E N D A T I O N S</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <div style="display: grid; gap: 1rem;">
+            {% for rec in ad.recommendations %}
+            <div style="padding: 1rem; background: var(--surface); border-radius: 8px; border-left: 4px solid var(--primary-color);">
+                <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                    <span style="background: var(--primary-color); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; flex-shrink: 0;">{{ loop.index }}</span>
+                    <div>
+                        {% if rec.category %}
+                        <strong style="color: var(--primary-color);">{{ rec.category }}:</strong>
+                        {% endif %}
+                        <span>{{ rec.text }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- REPORT ACCESS -->
+<div class="expander">
+    <div class="expander-header">
+        <span>R E P O R T &nbsp; A C C E S S</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+            <div class="metric-card">
+                <div class="metric-label">Report ID</div>
+                <div style="font-size: 0.9rem; font-family: monospace; margin-top: 0.5rem; word-break: break-all;">{{ report_id }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Created</div>
+                <div style="font-size: 1.1rem; margin-top: 0.5rem;">{{ meta.created_at[:10] if meta.created_at else 'N/A' }}</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="/api/v1/reports/{{ report_id }}" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem; background: var(--primary-color); color: white; border-radius: 8px; text-decoration: none; font-weight: 500;">
+                📊 View JSON Data
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- PROVENANCE / DATA SOURCES -->
+{% if report_data.provenance %}
+{% set prov = report_data.provenance %}
+<div class="expander">
+    <div class="expander-header">
+        <span>D A T A &nbsp; S O U R C E S &nbsp; && &nbsp; P R O V E N A N C E</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+            This section shows the origin of data in this report, distinguishing between TESPy thermodynamic simulations,
+            API lookups, and Claude's analytical reasoning.
+        </p>
+
+        <!-- Summary Stats -->
+        {% if prov.summary %}
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 1.5rem;">
+            <div class="metric-card" style="border-left: 4px solid #22c55e;">
+                <div class="metric-label">TESPy Simulations</div>
+                <div class="metric-value" style="color: #22c55e;">{{ prov.summary.tespy_simulations or 0 }}</div>
+            </div>
+            <div class="metric-card" style="border-left: 4px solid #3b82f6;">
+                <div class="metric-label">API Lookups</div>
+                <div class="metric-value" style="color: #3b82f6;">{{ prov.summary.api_lookups or 0 }}</div>
+            </div>
+            <div class="metric-card" style="border-left: 4px solid #f97316;">
+                <div class="metric-label">Claude Analysis</div>
+                <div class="metric-value" style="color: #f97316;">{{ prov.summary.total_calls - (prov.summary.tespy_simulations or 0) - (prov.summary.api_lookups or 0) }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Operations</div>
+                <div class="metric-value">{{ prov.summary.total_calls or 0 }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tool Call Log -->
+        {% if prov.tool_calls %}
+        <h4 style="margin-bottom: 0.75rem;">Tool Invocation Log</h4>
+        <div style="overflow-x: auto;">
+            <table class="data-table" style="font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th>Tool</th>
+                        <th>Source</th>
+                        <th>Parameters</th>
+                        <th>Result</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for call in prov.tool_calls %}
+                    <tr>
+                        <td><code style="font-size: 0.8rem;">{{ call.tool_name }}</code></td>
+                        <td>
+                            {% if call.source == 'tespy_simulation' %}
+                            <span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">TESPy</span>
+                            {% elif call.source == 'api_lookup' %}
+                            <span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">API</span>
+                            {% elif call.source == 'claude_analysis' %}
+                            <span style="background: #ffedd5; color: #9a3412; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">Claude</span>
+                            {% else %}
+                            <span style="background: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">{{ call.source }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                            {% for key, val in call.parameters.items() %}
+                            <span style="color: var(--text-secondary);">{{ key }}:</span> {{ val }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td style="max-width: 250px;">{{ call.result_summary }}</td>
+                        <td style="color: var(--text-secondary); font-size: 0.75rem; white-space: nowrap;">
+                            {{ call.timestamp[11:19] if call.timestamp else '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+            <strong>Session:</strong> {{ prov.session_id }} |
+            <strong>Started:</strong> {{ prov.session_start[:19] if prov.session_start else 'N/A' }} UTC |
+            <strong>MCP Version:</strong> {{ prov.mcp_server_version or '1.0.0' }}
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Glossary -->
+{% if glossary %}
+<div class="expander">
+    <div class="expander-header">
+        <span>G L O S S A R Y &nbsp; O F &nbsp; T E R M S</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+            Key terms and definitions used in heat pump simulation and thermodynamic analysis.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(450px, 1fr)); gap: 1rem;">
+            {% for term, description in glossary.items() %}
+            <div style="padding: 0.75rem; background: var(--bg-card); border-radius: 6px; border-left: 3px solid var(--primary-color);">
+                <dt style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">{{ term }}</dt>
+                <dd style="margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4;">{{ description }}</dd>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

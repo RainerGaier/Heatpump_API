@@ -26,12 +26,97 @@ from mcp.types import Tool, TextContent
 import json
 from datetime import datetime, timezone
 import uuid
+import os
+from typing import Any
 
-# Your deployed API endpoint
-API_BASE_URL = "https://heatpump-api-382432690682.europe-west1.run.app"
+# API endpoint - can be overridden via environment variable
+API_BASE_URL = os.environ.get(
+    "HEATPUMP_API_URL",
+    "https://heatpump-api-382432690682.europe-west1.run.app"
+)
 
 # Initialize MCP server
 app = Server("heatpump-simulator")
+
+
+# ============================================================================
+# PROVENANCE TRACKING
+# ============================================================================
+# Tracks all tool invocations during a session to provide transparency
+# about what data came from TESPy simulations vs Claude's reasoning.
+
+class ProvenanceTracker:
+    """
+    Tracks MCP tool invocations for transparency and audit purposes.
+
+    Each tool call is logged with:
+    - tool_name: Which MCP tool was called
+    - timestamp: When it was called (UTC ISO format)
+    - parameters: Input parameters (sanitized)
+    - source: Data source type (tespy_simulation, api_lookup, claude_analysis)
+    - success: Whether the call succeeded
+    - result_summary: Brief description of what was returned
+    """
+
+    def __init__(self):
+        self.session_id = str(uuid.uuid4())[:8]
+        self.session_start = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        self.tool_calls: list[dict[str, Any]] = []
+
+    def log_call(
+        self,
+        tool_name: str,
+        parameters: dict,
+        source: str,
+        success: bool,
+        result_summary: str
+    ):
+        """Log a tool invocation."""
+        self.tool_calls.append({
+            "tool_name": tool_name,
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "parameters": self._sanitize_params(parameters),
+            "source": source,
+            "success": success,
+            "result_summary": result_summary
+        })
+
+    def _sanitize_params(self, params: dict) -> dict:
+        """Remove large nested objects from parameters for cleaner logging."""
+        sanitized = {}
+        for key, value in params.items():
+            if isinstance(value, dict) and len(str(value)) > 500:
+                sanitized[key] = f"<{len(value)} keys>"
+            elif isinstance(value, list) and len(value) > 10:
+                sanitized[key] = f"<list of {len(value)} items>"
+            else:
+                sanitized[key] = value
+        return sanitized
+
+    def get_provenance(self) -> dict:
+        """Get full provenance data for inclusion in reports."""
+        return {
+            "session_id": self.session_id,
+            "session_start": self.session_start,
+            "mcp_server_version": "1.0.0",
+            "tool_calls": self.tool_calls,
+            "summary": {
+                "total_calls": len(self.tool_calls),
+                "tespy_simulations": sum(1 for c in self.tool_calls if c["source"] == "tespy_simulation"),
+                "api_lookups": sum(1 for c in self.tool_calls if c["source"] == "api_lookup"),
+                "successful_calls": sum(1 for c in self.tool_calls if c["success"]),
+            }
+        }
+
+    def clear(self):
+        """Clear provenance for a new session."""
+        self.session_id = str(uuid.uuid4())[:8]
+        self.session_start = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        self.tool_calls = []
+
+
+# Global provenance tracker instance
+provenance = ProvenanceTracker()
 
 
 @app.list_tools()
@@ -336,6 +421,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             response.raise_for_status()
             models = response.json()
 
+            # Log provenance
+            provenance.log_call(
+                tool_name="list_heat_pump_models",
+                parameters={},
+                source="api_lookup",
+                success=True,
+                result_summary=f"Retrieved {len(models.get('models', []))} heat pump models"
+            )
+
             result = "# Available Heat Pump Models\n\n"
             for model in models.get("models", [])[:10]:  # Show first 10
                 result += f"## {model['name']}\n"
@@ -354,6 +448,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             )
             response.raise_for_status()
             params = response.json()
+
+            # Log provenance
+            provenance.log_call(
+                tool_name="get_model_parameters",
+                parameters={"model_name": model_name},
+                source="api_lookup",
+                success=True,
+                result_summary=f"Retrieved parameters for {model_name} model"
+            )
 
             result = f"# Parameters for {model_name}\n\n```json\n"
             result += json.dumps(params, indent=2)
@@ -385,6 +488,21 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             response.raise_for_status()
             sim = response.json()
 
+            # Log provenance - THIS IS A TESPY SIMULATION
+            provenance.log_call(
+                tool_name="simulate_design_point",
+                parameters={
+                    "model_name": arguments["model_name"],
+                    "refrigerant": arguments.get("refrigerant", "R134a"),
+                    "cooling_capacity_kw": arguments["cooling_capacity_kw"],
+                    "evaporator_inlet_temp": arguments["evaporator_inlet_temp"],
+                    "condenser_outlet_temp": arguments["condenser_outlet_temp"],
+                },
+                source="tespy_simulation",
+                success=sim.get("converged", False),
+                result_summary=f"COP={sim.get('cop', 'N/A'):.2f}, Power={sim.get('power_input', 0)/1000:.1f}kW" if sim.get("converged") else "Simulation failed to converge"
+            )
+
             result = f"# Simulation Results\n\n"
             result += f"**Model:** {arguments['model_name']}\n"
             result += f"**Refrigerant:** {arguments.get('refrigerant', 'R134a')}\n\n"
@@ -409,7 +527,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
             result = f"# Data Centre Cooling Analysis - {capacity_mw} MW\n\n"
 
-            # Strategy
+            # Strategy (Claude's analysis based on industry knowledge)
             result += "## Recommended Strategy\n\n"
             result += "**Three-Tier Hybrid Approach:**\n\n"
             result += "1. **Free Cooling** (60-70% of year)\n"
@@ -420,6 +538,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             result += "   - Heat recovery capable\n\n"
             result += "3. **Backup Chillers** (5-15% of year)\n"
             result += "   - Peak summer\n\n"
+
+            # Log the strategy recommendation as Claude analysis
+            provenance.log_call(
+                tool_name="analyze_datacenter_cooling",
+                parameters={"cooling_capacity_mw": capacity_mw},
+                source="claude_analysis",
+                success=True,
+                result_summary="Generated three-tier cooling strategy based on industry best practices"
+            )
 
             # Run simulation
             payload = {
@@ -445,6 +572,20 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                     cop = sim["cop"]
                     power_mw = sim["power_input"] / 1000000
 
+                    # Log the TESPy simulation
+                    provenance.log_call(
+                        tool_name="analyze_datacenter_cooling.simulation",
+                        parameters={
+                            "model": "ihx",
+                            "refrigerant": "R134a",
+                            "capacity_mw": capacity_mw,
+                            "wetland_temp": arguments.get("wetland_temp_summer", 20),
+                        },
+                        source="tespy_simulation",
+                        success=True,
+                        result_summary=f"IHX simulation: COP={cop:.2f}, Power={power_mw:.2f}MW"
+                    )
+
                     result += f"## Heat Pump Performance\n\n"
                     result += f"- **COP:** {cop:.2f}\n"
                     result += f"- **Power:** {power_mw:.2f} MW\n"
@@ -454,6 +595,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                         recoverable_mw = capacity_mw * 0.35
                         annual_heat_mwh = recoverable_mw * 8000
                         revenue = annual_heat_mwh * 40
+
+                        # Log heat recovery calculation as Claude analysis
+                        provenance.log_call(
+                            tool_name="analyze_datacenter_cooling.heat_recovery",
+                            parameters={"capacity_mw": capacity_mw},
+                            source="claude_analysis",
+                            success=True,
+                            result_summary=f"Estimated {recoverable_mw:.1f}MW recoverable, £{revenue:,.0f}/yr revenue"
+                        )
 
                         result += f"## Heat Recovery\n\n"
                         result += f"- **Capacity:** {recoverable_mw:.1f} MW\n"
@@ -472,7 +622,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             # Generate report ID
             report_id = str(uuid.uuid4())
 
-            # Build metadata
+            # Build metadata with provenance
             metadata = {
                 "report_id": report_id,
                 "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -480,6 +630,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "model_name": arguments.get("model_name", "Unknown"),
                 "topology": arguments.get("model_name", "Unknown"),
                 "refrigerant": arguments.get("refrigerant", "R134a"),
+                "source": "mcp_claude_desktop",  # Indicates this came from MCP
             }
 
             # Build simulation data structure
@@ -534,7 +685,21 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "exergy_assessment": sim_data.get("exergy_assessment", {}),
                 # Preserve ALL the original analysis data for the HTML report
                 "analysis_data": sim_data,
+                # Include provenance tracking data
+                "provenance": provenance.get_provenance(),
             }
+
+            # Log the save operation itself
+            provenance.log_call(
+                tool_name="save_simulation_report",
+                parameters={
+                    "project_name": arguments.get("project_name"),
+                    "model_name": arguments.get("model_name"),
+                },
+                source="api_lookup",
+                success=True,
+                result_summary=f"Saving report {report_id[:8]}..."
+            )
 
             # Call API to save report
             payload = {
@@ -671,11 +836,16 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
-async def main():
+async def run_server():
     """Run the MCP server."""
     async with stdio_server() as (read_stream, write_stream):
         await app.run(read_stream, write_stream, app.create_initialization_options())
 
 
+def main():
+    """Entry point for the MCP server."""
+    asyncio.run(run_server())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

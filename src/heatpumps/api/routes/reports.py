@@ -241,12 +241,25 @@ async def view_report_html(
     """
     Render HTML view of a simulation report.
 
-    Returns HTML page with:
+    Automatically detects report type and uses appropriate template:
+    - MCP Analysis reports (Claude-generated): report_analysis.html
+    - Streamlit Simulation reports (TESPy): report.html
+
+    For Streamlit reports, returns HTML page with:
     - Configuration results metrics
     - Topology & Refrigerant info
     - State variables table
     - Economic evaluation
     - Exergy assessment with Sankey diagram
+
+    For MCP Analysis reports, returns HTML page with:
+    - Project Overview
+    - Recommended Configuration
+    - Model Comparison
+    - Seasonal Performance
+    - Cooling Strategy
+    - Annual Energy Performance
+    - Cost Estimates
 
     Args:
         report_id: Unique report identifier
@@ -254,7 +267,7 @@ async def view_report_html(
         storage: Storage service dependency
 
     Returns:
-        HTML page rendered from template
+        HTML page rendered from appropriate template
 
     Raises:
         HTTPException: If report not found or rendering fails
@@ -264,6 +277,60 @@ async def view_report_html(
 
         # Download report JSON from Cloud Storage
         report_data = await storage.download_json(report_id=report_id)
+
+        # Detect report type based on data structure
+        analysis_data = report_data.get("analysis_data", {})
+        metadata = report_data.get("metadata", {})
+
+        # Type 1: Skill-based reports (flat analysis_data with seasonal COPs, topology_comparison, etc.)
+        # These come from the structured Claude skill workflow
+        is_skill_report = bool(
+            analysis_data and (
+                # Has seasonal COP data (from skill workflow)
+                (analysis_data.get("summer_cop") and analysis_data.get("winter_cop")) or
+                # Has structured topology comparison
+                analysis_data.get("topology_comparison") or
+                # Has strategy/recommendations structure
+                analysis_data.get("strategy") or
+                analysis_data.get("recommendations")
+            )
+        )
+
+        # Type 2: MCP analysis reports (nested structures like project_overview, model_comparison)
+        # These come from free-form Claude MCP analysis
+        is_mcp_analysis = bool(
+            analysis_data and (
+                analysis_data.get("project_overview") or
+                analysis_data.get("recommended_topology") or
+                analysis_data.get("model_comparison") or
+                analysis_data.get("seasonal_performance")
+            )
+        )
+
+        if is_skill_report:
+            # Use skill-based template for structured workflow output
+            logger.info(f"Report {report_id} detected as skill-based report")
+            context = {
+                "request": request,
+                "report_id": report_id,
+                "report_data": report_data,
+                "glossary": get_glossary(),
+            }
+            return templates.TemplateResponse("report_skill.html", context)
+
+        if is_mcp_analysis:
+            # Use MCP analysis template
+            logger.info(f"Report {report_id} detected as MCP analysis report")
+            context = {
+                "request": request,
+                "report_id": report_id,
+                "report_data": report_data,
+                "glossary": get_glossary(),
+            }
+            return templates.TemplateResponse("report_analysis.html", context)
+
+        # Standard Streamlit simulation report
+        logger.info(f"Report {report_id} detected as Streamlit simulation report")
 
         # Load refrigerant database for properties table
         refrigerants = load_refrigerant_database()

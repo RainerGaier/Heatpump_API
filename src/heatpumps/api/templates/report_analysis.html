@@ -1,0 +1,586 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# MCP Analysis Report Template - For Claude-generated analysis data #}
+
+<!-- Project Header -->
+<section class="results-section" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
+                {{ report_data.metadata.project_name or 'Heat Pump Analysis Report' }}
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                Report ID: {{ report_id }} |
+                Generated: {{ report_data.metadata.created_at[:10] if report_data.metadata.created_at else 'N/A' }}
+            </p>
+        </div>
+        <div style="text-align: right;">
+            <!-- Data Source Indicator -->
+            {% if report_data.metadata.source == 'mcp_claude_desktop' %}
+            <span style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; padding: 0.4rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; display: inline-block; margin-bottom: 0.5rem;">
+                🤖 MCP + Claude Analysis
+            </span>
+            {% elif report_data.metadata.source == 'streamlit_tespy' %}
+            <span style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 0.4rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; display: inline-block; margin-bottom: 0.5rem;">
+                🔬 TESPy Simulation
+            </span>
+            {% endif %}
+            <br>
+            <span class="topology-badge" style="background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600;">
+                {{ report_data.metadata.topology|upper or 'ANALYSIS' }}
+            </span>
+            {% if report_data.metadata.refrigerant %}
+            <span class="refrigerant-badge" style="background: var(--bg-secondary); padding: 0.5rem 1rem; border-radius: 6px; margin-left: 0.5rem;">
+                {{ report_data.metadata.refrigerant }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+{% set ad = report_data.analysis_data %}
+
+{% if ad %}
+
+<!-- Project Overview -->
+{% if ad.project_overview %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>P R O J E C T &nbsp; O V E R V I E W</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% set po = ad.project_overview %}
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            {% if po.site_name %}
+            <div class="metric-card">
+                <div class="metric-label">Site Name</div>
+                <div class="metric-value" style="font-size: 1.25rem;">{{ po.site_name }}</div>
+            </div>
+            {% endif %}
+            {% if po.cooling_capacity_kw %}
+            <div class="metric-card">
+                <div class="metric-label">Cooling Capacity</div>
+                <div class="metric-value">{{ "{:,.0f}".format(po.cooling_capacity_kw|float) }} kW</div>
+            </div>
+            {% endif %}
+            {% if po.dc_water_inlet_temp_c %}
+            <div class="metric-card">
+                <div class="metric-label">DC Water Inlet</div>
+                <div class="metric-value">{{ po.dc_water_inlet_temp_c }}°C</div>
+            </div>
+            {% endif %}
+            {% if po.dc_water_outlet_temp_c %}
+            <div class="metric-card">
+                <div class="metric-label">DC Water Outlet</div>
+                <div class="metric-value">{{ po.dc_water_outlet_temp_c }}°C</div>
+            </div>
+            {% endif %}
+            {% if po.heat_sink %}
+            <div class="metric-card">
+                <div class="metric-label">Heat Sink</div>
+                <div class="metric-value" style="font-size: 1.25rem;">{{ po.heat_sink }}</div>
+            </div>
+            {% endif %}
+            {% if po.wetland_temp_winter_c %}
+            <div class="metric-card">
+                <div class="metric-label">Wetland Temp (Winter)</div>
+                <div class="metric-value">{{ po.wetland_temp_winter_c }}°C</div>
+            </div>
+            {% endif %}
+            {% if po.wetland_temp_summer_c %}
+            <div class="metric-card">
+                <div class="metric-label">Wetland Temp (Summer)</div>
+                <div class="metric-value">{{ po.wetland_temp_summer_c }}°C</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recommended Configuration -->
+{% if ad.recommended_topology or ad.recommended_refrigerant %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>R E C O M M E N D E D &nbsp; C O N F I G U R A T I O N</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem;">
+            {% if ad.recommended_topology %}
+            <div style="padding: 1.25rem; background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%); border-radius: 12px; color: white;">
+                <h3 style="margin-bottom: 0.75rem; font-size: 1rem; opacity: 0.9;">Recommended Topology</h3>
+                <div style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">{{ ad.recommended_topology.model|upper }}</div>
+                <p style="font-size: 0.9rem; opacity: 0.9;">{{ ad.recommended_topology.reason }}</p>
+            </div>
+            {% endif %}
+            {% if ad.recommended_refrigerant %}
+            <div style="padding: 1.25rem; background: linear-gradient(135deg, #059669 0%, #047857 100%); border-radius: 12px; color: white;">
+                <h3 style="margin-bottom: 0.75rem; font-size: 1rem; opacity: 0.9;">Recommended Refrigerant</h3>
+                <div style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">{{ ad.recommended_refrigerant.primary }}</div>
+                <p style="font-size: 0.9rem; opacity: 0.9;">{{ ad.recommended_refrigerant.reason }}</p>
+                {% if ad.recommended_refrigerant.alternative %}
+                <p style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.8;">Alternative: {{ ad.recommended_refrigerant.alternative }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Model Comparison -->
+{% if ad.model_comparison %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>M O D E L &nbsp; C O M P A R I S O N</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Model / Refrigerant</th>
+                        <th>COP (Winter)</th>
+                        <th>COP (Summer)</th>
+                        <th>Efficiency Winter (%)</th>
+                        <th>Efficiency Summer (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for model_key, model_data in ad.model_comparison.items() %}
+                    <tr>
+                        <td><strong>{{ model_key.replace('_', ' ').title() }}</strong></td>
+                        <td>{{ "%.2f"|format(model_data.cop_winter|float) if model_data.cop_winter else '-' }}</td>
+                        <td>{{ "%.2f"|format(model_data.cop_summer|float) if model_data.cop_summer else '-' }}</td>
+                        <td>{{ "%.1f"|format(model_data.efficiency_winter|float) if model_data.efficiency_winter else '-' }}%</td>
+                        <td>{{ "%.1f"|format(model_data.efficiency_summer|float) if model_data.efficiency_summer else '-' }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Seasonal Performance -->
+{% if ad.seasonal_performance %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>S E A S O N A L &nbsp; P E R F O R M A N C E</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% set sp = ad.seasonal_performance %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+            {% if sp.winter %}
+            <div style="padding: 1.25rem; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius: 12px; color: white;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">❄️ Winter Performance</h3>
+                <div style="display: grid; gap: 0.5rem;">
+                    <div style="display: flex; justify-content: space-between;"><span>Wetland Temp:</span><strong>{{ sp.winter.wetland_temp_c }}°C</strong></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Condenser Out:</span><strong>{{ sp.winter.condenser_out_c }}°C</strong></div>
+                    <div style="display: flex; justify-content: space-between;"><span>COP:</span><strong style="font-size: 1.5rem;">{{ "%.2f"|format(sp.winter.cop|float) }}</strong></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Power:</span><strong>{{ sp.winter.power_kw }} kW</strong></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if sp.summer %}
+            <div style="padding: 1.25rem; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border-radius: 12px; color: white;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">☀️ Summer Performance</h3>
+                <div style="display: grid; gap: 0.5rem;">
+                    <div style="display: flex; justify-content: space-between;"><span>Wetland Temp:</span><strong>{{ sp.summer.wetland_temp_c }}°C</strong></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Condenser Out:</span><strong>{{ sp.summer.condenser_out_c }}°C</strong></div>
+                    <div style="display: flex; justify-content: space-between;"><span>COP:</span><strong style="font-size: 1.5rem;">{{ "%.2f"|format(sp.summer.cop|float) }}</strong></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Power:</span><strong>{{ sp.summer.power_kw }} kW</strong></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% if sp.annual_average_cop %}
+        <div class="metric-card" style="max-width: 300px;">
+            <div class="metric-label">Annual Average COP</div>
+            <div class="metric-value">{{ "%.2f"|format(sp.annual_average_cop|float) }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Three-Tier Strategy -->
+{% if ad.three_tier_strategy %}
+<div class="expander">
+    <div class="expander-header">
+        <span>C O O L I N G &nbsp; S T R A T E G Y</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% set tts = ad.three_tier_strategy %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            {% if tts.tier1_free_cooling %}
+            <div style="padding: 1.25rem; border: 2px solid #22c55e; border-radius: 12px;">
+                <h4 style="color: #22c55e; margin-bottom: 0.75rem;">Tier 1: Free Cooling</h4>
+                <div class="metric-value" style="font-size: 2.5rem; color: #22c55e;">{{ tts.tier1_free_cooling.usage_percent }}%</div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">{{ "{:,}".format(tts.tier1_free_cooling.hours_per_year|int) }} hours/year</p>
+                <p style="margin-top: 0.5rem;">PUE: <strong>{{ tts.tier1_free_cooling.pue }}</strong></p>
+            </div>
+            {% endif %}
+            {% if tts.tier2_heat_pump %}
+            <div style="padding: 1.25rem; border: 2px solid #3b82f6; border-radius: 12px;">
+                <h4 style="color: #3b82f6; margin-bottom: 0.75rem;">Tier 2: Heat Pump</h4>
+                <div class="metric-value" style="font-size: 2.5rem; color: #3b82f6;">{{ tts.tier2_heat_pump.usage_percent }}%</div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">{{ "{:,}".format(tts.tier2_heat_pump.hours_per_year|int) }} hours/year</p>
+                <p style="margin-top: 0.5rem;">PUE: <strong>{{ tts.tier2_heat_pump.pue }}</strong></p>
+            </div>
+            {% endif %}
+            {% if tts.tier3_backup %}
+            <div style="padding: 1.25rem; border: 2px solid #f97316; border-radius: 12px;">
+                <h4 style="color: #f97316; margin-bottom: 0.75rem;">Tier 3: Backup</h4>
+                <div class="metric-value" style="font-size: 2.5rem; color: #f97316;">{{ tts.tier3_backup.usage_percent }}%</div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">{{ "{:,}".format(tts.tier3_backup.hours_per_year|int) }} hours/year</p>
+                <p style="margin-top: 0.5rem;">PUE: <strong>{{ tts.tier3_backup.pue }}</strong></p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Annual Energy -->
+{% if ad.annual_energy %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>A N N U A L &nbsp; E N E R G Y &nbsp; P E R F O R M A N C E</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% set ae = ad.annual_energy %}
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            {% if ae.cooling_delivered_mwh %}
+            <div class="metric-card">
+                <div class="metric-label">Cooling Delivered</div>
+                <div class="metric-value">{{ "{:,.0f}".format(ae.cooling_delivered_mwh|float) }} MWh</div>
+            </div>
+            {% endif %}
+            {% if ae.electricity_consumed_mwh %}
+            <div class="metric-card">
+                <div class="metric-label">Electricity Consumed</div>
+                <div class="metric-value">{{ "{:,.0f}".format(ae.electricity_consumed_mwh|float) }} MWh</div>
+            </div>
+            {% endif %}
+            {% if ae.annual_weighted_pue %}
+            <div class="metric-card">
+                <div class="metric-label">Annual Weighted PUE</div>
+                <div class="metric-value">{{ "%.2f"|format(ae.annual_weighted_pue|float) }}</div>
+            </div>
+            {% endif %}
+            {% if ae.effective_annual_cop %}
+            <div class="metric-card">
+                <div class="metric-label">Effective Annual COP</div>
+                <div class="metric-value">{{ ae.effective_annual_cop }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Heat Recovery -->
+{% if ad.heat_recovery %}
+<div class="expander">
+    <div class="expander-header">
+        <span>H E A T &nbsp; R E C O V E R Y &nbsp; P O T E N T I A L</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% set hr = ad.heat_recovery %}
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            {% if hr.recoverable_capacity_kw %}
+            <div class="metric-card">
+                <div class="metric-label">Recoverable Capacity</div>
+                <div class="metric-value">{{ "{:,.0f}".format(hr.recoverable_capacity_kw|float) }} kW</div>
+            </div>
+            {% endif %}
+            {% if hr.annual_heat_delivery_mwh %}
+            <div class="metric-card">
+                <div class="metric-label">Annual Heat Delivery</div>
+                <div class="metric-value">{{ "{:,.0f}".format(hr.annual_heat_delivery_mwh|float) }} MWh</div>
+            </div>
+            {% endif %}
+            {% if hr.revenue_at_40_gbp_per_mwh %}
+            <div class="metric-card" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white;">
+                <div class="metric-label" style="color: rgba(255,255,255,0.9);">Potential Annual Revenue</div>
+                <div class="metric-value" style="color: white;">£{{ "{:,.0f}".format(hr.revenue_at_40_gbp_per_mwh|float) }}</div>
+                <div style="font-size: 0.8rem; opacity: 0.8;">at £40/MWh</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Equipment Recommendation -->
+{% if ad.equipment_recommendation %}
+<div class="expander">
+    <div class="expander-header">
+        <span>E Q U I P M E N T &nbsp; R E C O M M E N D A T I O N</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% set er = ad.equipment_recommendation %}
+        <div style="padding: 1.5rem; background: var(--bg-secondary); border-radius: 12px; border-left: 4px solid var(--primary);">
+            {% if er.primary %}
+            <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">{{ er.primary }}</h3>
+            {% endif %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                {% if er.configuration %}
+                <div><span style="color: var(--text-secondary);">Configuration:</span><br><strong>{{ er.configuration }}</strong></div>
+                {% endif %}
+                {% if er.capacity_per_unit_kw %}
+                <div><span style="color: var(--text-secondary);">Capacity per Unit:</span><br><strong>{{ "{:,.0f}".format(er.capacity_per_unit_kw|float) }} kW</strong></div>
+                {% endif %}
+                {% if er.refrigerant %}
+                <div><span style="color: var(--text-secondary);">Refrigerant:</span><br><strong>{{ er.refrigerant }}</strong></div>
+                {% endif %}
+                {% if er.estimated_cop %}
+                <div><span style="color: var(--text-secondary);">Estimated COP:</span><br><strong>{{ er.estimated_cop }}</strong></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Estimated Costs -->
+{% if ad.estimated_costs %}
+<div class="expander open">
+    <div class="expander-header">
+        <span>E S T I M A T E D &nbsp; C O S T S</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% set ec = ad.estimated_costs %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+            <!-- Capital Costs -->
+            <div>
+                <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">Capital Costs</h4>
+                <table class="data-table">
+                    <tbody>
+                        {% if ec.equipment_gbp %}
+                        <tr><td>Equipment</td><td style="text-align: right;">£{{ "{:,.0f}".format(ec.equipment_gbp|float) }}</td></tr>
+                        {% endif %}
+                        {% if ec.installation_gbp %}
+                        <tr><td>Installation</td><td style="text-align: right;">£{{ "{:,.0f}".format(ec.installation_gbp|float) }}</td></tr>
+                        {% endif %}
+                        {% if ec.wetland_heat_exchanger_gbp %}
+                        <tr><td>Wetland Heat Exchanger</td><td style="text-align: right;">£{{ "{:,.0f}".format(ec.wetland_heat_exchanger_gbp|float) }}</td></tr>
+                        {% endif %}
+                        {% if ec.controls_integration_gbp %}
+                        <tr><td>Controls & Integration</td><td style="text-align: right;">£{{ "{:,.0f}".format(ec.controls_integration_gbp|float) }}</td></tr>
+                        {% endif %}
+                        {% if ec.total_installed_gbp %}
+                        <tr style="background: var(--bg-secondary); font-weight: 600;">
+                            <td>Total Installed Cost</td>
+                            <td style="text-align: right; font-size: 1.1rem;">£{{ "{:,.0f}".format(ec.total_installed_gbp|float) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if ec.specific_cost_gbp_per_kw %}
+                        <tr>
+                            <td>Specific Cost</td>
+                            <td style="text-align: right;">£{{ "{:,.0f}".format(ec.specific_cost_gbp_per_kw|float) }}/kW</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Operating Costs -->
+            {% if ad.annual_operating_costs %}
+            {% set aoc = ad.annual_operating_costs %}
+            <div>
+                <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">Annual Operating Costs</h4>
+                <table class="data-table">
+                    <tbody>
+                        {% if aoc.electricity_mwh %}
+                        <tr><td>Electricity Consumption</td><td style="text-align: right;">{{ "{:,.0f}".format(aoc.electricity_mwh|float) }} MWh</td></tr>
+                        {% endif %}
+                        {% if aoc.electricity_cost_at_150_gbp_per_mwh %}
+                        <tr><td>Electricity Cost (@ £150/MWh)</td><td style="text-align: right;">£{{ "{:,.0f}".format(aoc.electricity_cost_at_150_gbp_per_mwh|float) }}</td></tr>
+                        {% endif %}
+                        {% if aoc.maintenance_gbp %}
+                        <tr><td>Maintenance</td><td style="text-align: right;">£{{ "{:,.0f}".format(aoc.maintenance_gbp|float) }}</td></tr>
+                        {% endif %}
+                        {% if aoc.total_annual_gbp %}
+                        <tr style="background: var(--bg-secondary); font-weight: 600;">
+                            <td>Total Annual Cost</td>
+                            <td style="text-align: right; font-size: 1.1rem;">£{{ "{:,.0f}".format(aoc.total_annual_gbp|float) }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Heat Recovery Economics -->
+{% if ad.heat_recovery_economics %}
+<div class="expander">
+    <div class="expander-header">
+        <span>H E A T &nbsp; R E C O V E R Y &nbsp; E C O N O M I C S</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        {% set hre = ad.heat_recovery_economics %}
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            {% if hre.annual_revenue_gbp %}
+            <div class="metric-card" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white;">
+                <div class="metric-label" style="color: rgba(255,255,255,0.9);">Annual Revenue</div>
+                <div class="metric-value" style="color: white;">£{{ "{:,.0f}".format(hre.annual_revenue_gbp|float) }}</div>
+            </div>
+            {% endif %}
+            {% if hre.net_annual_benefit_gbp %}
+            <div class="metric-card">
+                <div class="metric-label">Net Annual Benefit</div>
+                <div class="metric-value">£{{ "{:,.0f}".format(hre.net_annual_benefit_gbp|float) }}</div>
+            </div>
+            {% endif %}
+            {% if hre.simple_payback_years %}
+            <div class="metric-card">
+                <div class="metric-label">Simple Payback</div>
+                <div class="metric-value">{{ "%.1f"|format(hre.simple_payback_years|float) }} years</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<!-- No analysis data available -->
+<div style="padding: 3rem; text-align: center; color: var(--text-secondary);">
+    <h2>No Analysis Data Available</h2>
+    <p>This report does not contain MCP-generated analysis data.</p>
+</div>
+{% endif %}
+
+<!-- Provenance / Data Sources -->
+{% if report_data.provenance %}
+{% set prov = report_data.provenance %}
+<div class="expander">
+    <div class="expander-header">
+        <span>D A T A &nbsp; S O U R C E S &nbsp; && &nbsp; P R O V E N A N C E</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+            This section shows the origin of data in this report, distinguishing between TESPy thermodynamic simulations,
+            API lookups, and Claude's analytical reasoning.
+        </p>
+
+        <!-- Summary Stats -->
+        {% if prov.summary %}
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 1.5rem;">
+            <div class="metric-card" style="border-left: 4px solid #22c55e;">
+                <div class="metric-label">TESPy Simulations</div>
+                <div class="metric-value" style="color: #22c55e;">{{ prov.summary.tespy_simulations or 0 }}</div>
+            </div>
+            <div class="metric-card" style="border-left: 4px solid #3b82f6;">
+                <div class="metric-label">API Lookups</div>
+                <div class="metric-value" style="color: #3b82f6;">{{ prov.summary.api_lookups or 0 }}</div>
+            </div>
+            <div class="metric-card" style="border-left: 4px solid #f97316;">
+                <div class="metric-label">Claude Analysis</div>
+                <div class="metric-value" style="color: #f97316;">{{ prov.summary.total_calls - (prov.summary.tespy_simulations or 0) - (prov.summary.api_lookups or 0) }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Operations</div>
+                <div class="metric-value">{{ prov.summary.total_calls or 0 }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tool Call Log -->
+        {% if prov.tool_calls %}
+        <h4 style="margin-bottom: 0.75rem;">Tool Invocation Log</h4>
+        <div style="overflow-x: auto;">
+            <table class="data-table" style="font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th>Tool</th>
+                        <th>Source</th>
+                        <th>Parameters</th>
+                        <th>Result</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for call in prov.tool_calls %}
+                    <tr>
+                        <td><code style="font-size: 0.8rem;">{{ call.tool_name }}</code></td>
+                        <td>
+                            {% if call.source == 'tespy_simulation' %}
+                            <span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">TESPy</span>
+                            {% elif call.source == 'api_lookup' %}
+                            <span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">API</span>
+                            {% elif call.source == 'claude_analysis' %}
+                            <span style="background: #ffedd5; color: #9a3412; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">Claude</span>
+                            {% else %}
+                            <span style="background: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">{{ call.source }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                            {% for key, val in call.parameters.items() %}
+                            <span style="color: var(--text-secondary);">{{ key }}:</span> {{ val }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td style="max-width: 250px;">{{ call.result_summary }}</td>
+                        <td style="color: var(--text-secondary); font-size: 0.75rem; white-space: nowrap;">
+                            {{ call.timestamp[11:19] if call.timestamp else '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+            <strong>Session:</strong> {{ prov.session_id }} |
+            <strong>Started:</strong> {{ prov.session_start[:19] if prov.session_start else 'N/A' }} UTC |
+            <strong>MCP Version:</strong> {{ prov.mcp_server_version or '1.0.0' }}
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Glossary -->
+{% if glossary %}
+<div class="expander">
+    <div class="expander-header">
+        <span>G L O S S A R Y &nbsp; O F &nbsp; T E R M S</span>
+        <span class="expander-icon">▼</span>
+    </div>
+    <div class="expander-content">
+        <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+            Key terms and definitions used in heat pump simulation and thermodynamic analysis.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(450px, 1fr)); gap: 1rem;">
+            {% for term, description in glossary.items() %}
+            <div style="padding: 0.75rem; background: var(--bg-card); border-radius: 6px; border-left: 3px solid var(--primary);">
+                <dt style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">{{ term }}</dt>
+                <dd style="margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4;">{{ description }}</dd>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
